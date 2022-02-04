@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestHashrateRequest(t *testing.T) {
@@ -21,21 +21,21 @@ func TestHashrateRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	exampleResponse := `{"enabled": true, "staking": false, "errors": "", "currentblocktx": 0, "pooledtx": 0, "difficulty": 4.656542373906925e-010, "search-interval": 0, "weight": 0, "netstakeweight": 0, "expectedtime": 0}`
-	getHashrateResponse := qtum.GetHashrateResponse{}
+	getHashrateResponse := htmlcoin.GetHashrateResponse{}
 	unmarshalRequest([]byte(exampleResponse), &getHashrateResponse)
 
-	err = mockedClientDoer.AddResponse(qtum.MethodGetStakingInfo, getHashrateResponse)
+	err = mockedClientDoer.AddResponse(htmlcoin.MethodGetStakingInfo, getHashrateResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	proxyEth := ProxyETHHashrate{qtumClient}
+	proxyEth := ProxyETHHashrate{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
