@@ -4,10 +4,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/conversion"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/conversion"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 var STATUS_SUCCESS = "0x1"
@@ -15,7 +15,7 @@ var STATUS_FAILURE = "0x0"
 
 // ProxyETHGetTransactionReceipt implements ETHProxy
 type ProxyETHGetTransactionReceipt struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetTransactionReceipt) Method() string {
@@ -34,21 +34,21 @@ func (p *ProxyETHGetTransactionReceipt) Request(rawreq *eth.JSONRPCRequest, c ec
 	}
 	var (
 		txHash  = utils.RemoveHexPrefix(string(req))
-		qtumReq = qtum.GetTransactionReceiptRequest(txHash)
+		htmlcoinReq = htmlcoin.GetTransactionReceiptRequest(txHash)
 	)
-	return p.request(&qtumReq)
+	return p.request(&htmlcoinReq)
 }
 
-func (p *ProxyETHGetTransactionReceipt) request(req *qtum.GetTransactionReceiptRequest) (*eth.GetTransactionReceiptResponse, eth.JSONRPCError) {
-	qtumReceipt, err := p.Qtum.GetTransactionReceipt(string(*req))
+func (p *ProxyETHGetTransactionReceipt) request(req *htmlcoin.GetTransactionReceiptRequest) (*eth.GetTransactionReceiptResponse, eth.JSONRPCError) {
+	htmlcoinReceipt, err := p.Htmlcoin.GetTransactionReceipt(string(*req))
 	if err != nil {
-		ethTx, _, getRewardTransactionErr := getRewardTransactionByHash(p.Qtum, string(*req))
+		ethTx, _, getRewardTransactionErr := getRewardTransactionByHash(p.Htmlcoin, string(*req))
 		if getRewardTransactionErr != nil {
 			errCause := errors.Cause(err)
-			if errCause == qtum.EmptyResponseErr {
+			if errCause == htmlcoin.EmptyResponseErr {
 				return nil, nil
 			}
-			p.Qtum.GetDebugLogger().Log("msg", "Transaction does not exist", "txid", string(*req))
+			p.Htmlcoin.GetDebugLogger().Log("msg", "Transaction does not exist", "txid", string(*req))
 			return nil, eth.NewCallbackError(err.Error())
 		}
 		return &eth.GetTransactionReceiptResponse{
@@ -69,15 +69,15 @@ func (p *ProxyETHGetTransactionReceipt) request(req *qtum.GetTransactionReceiptR
 	}
 
 	ethReceipt := &eth.GetTransactionReceiptResponse{
-		TransactionHash:   utils.AddHexPrefix(qtumReceipt.TransactionHash),
-		TransactionIndex:  hexutil.EncodeUint64(qtumReceipt.TransactionIndex),
-		BlockHash:         utils.AddHexPrefix(qtumReceipt.BlockHash),
-		BlockNumber:       hexutil.EncodeUint64(qtumReceipt.BlockNumber),
-		ContractAddress:   utils.AddHexPrefixIfNotEmpty(qtumReceipt.ContractAddress),
-		CumulativeGasUsed: hexutil.EncodeUint64(qtumReceipt.CumulativeGasUsed),
-		GasUsed:           hexutil.EncodeUint64(qtumReceipt.GasUsed),
-		From:              utils.AddHexPrefixIfNotEmpty(qtumReceipt.From),
-		To:                utils.AddHexPrefixIfNotEmpty(qtumReceipt.To),
+		TransactionHash:   utils.AddHexPrefix(htmlcoinReceipt.TransactionHash),
+		TransactionIndex:  hexutil.EncodeUint64(htmlcoinReceipt.TransactionIndex),
+		BlockHash:         utils.AddHexPrefix(htmlcoinReceipt.BlockHash),
+		BlockNumber:       hexutil.EncodeUint64(htmlcoinReceipt.BlockNumber),
+		ContractAddress:   utils.AddHexPrefixIfNotEmpty(htmlcoinReceipt.ContractAddress),
+		CumulativeGasUsed: hexutil.EncodeUint64(htmlcoinReceipt.CumulativeGasUsed),
+		GasUsed:           hexutil.EncodeUint64(htmlcoinReceipt.GasUsed),
+		From:              utils.AddHexPrefixIfNotEmpty(htmlcoinReceipt.From),
+		To:                utils.AddHexPrefixIfNotEmpty(htmlcoinReceipt.To),
 
 		// TODO: researching
 		// ! Temporary accept this value to be always zero, as it is at eth logs
@@ -85,27 +85,27 @@ func (p *ProxyETHGetTransactionReceipt) request(req *qtum.GetTransactionReceiptR
 	}
 
 	status := STATUS_FAILURE
-	if qtumReceipt.Excepted == "None" {
+	if htmlcoinReceipt.Excepted == "None" {
 		status = STATUS_SUCCESS
 	} else {
-		p.Qtum.GetDebugLogger().Log("transaction", ethReceipt.TransactionHash, "msg", "transaction excepted", "message", qtumReceipt.Excepted)
+		p.Htmlcoin.GetDebugLogger().Log("transaction", ethReceipt.TransactionHash, "msg", "transaction excepted", "message", htmlcoinReceipt.Excepted)
 	}
 	ethReceipt.Status = status
 
-	r := qtum.TransactionReceipt(*qtumReceipt)
+	r := htmlcoin.TransactionReceipt(*htmlcoinReceipt)
 	ethReceipt.Logs = conversion.ExtractETHLogsFromTransactionReceipt(&r, r.Log)
 
-	qtumTx, err := p.Qtum.GetRawTransaction(qtumReceipt.TransactionHash, false)
+	htmlcoinTx, err := p.Htmlcoin.GetRawTransaction(htmlcoinReceipt.TransactionHash, false)
 	if err != nil {
 		p.GetDebugLogger().Log("msg", "couldn't get transaction", "err", err)
 		return nil, eth.NewCallbackError("couldn't get transaction")
 	}
-	decodedRawQtumTx, err := p.Qtum.DecodeRawTransaction(qtumTx.Hex)
+	decodedRawHtmlcoinTx, err := p.Htmlcoin.DecodeRawTransaction(htmlcoinTx.Hex)
 	if err != nil {
 		p.GetDebugLogger().Log("msg", "couldn't decode raw transaction", "err", err)
 		return nil, eth.NewCallbackError("couldn't decode raw transaction")
 	}
-	if decodedRawQtumTx.IsContractCreation() {
+	if decodedRawHtmlcoinTx.IsContractCreation() {
 		ethReceipt.To = ""
 	} else {
 		ethReceipt.ContractAddress = ""
