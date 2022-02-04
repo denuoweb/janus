@@ -2,12 +2,12 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/eth"
 )
 
 // Web3ClientVersion implements web3_clientVersion
 type Web3ClientVersion struct {
-	// *qtum.Qtum
+	// *htmlcoin.Htmlcoin
 }
 
 func (p *Web3ClientVersion) Method() string {
@@ -15,11 +15,11 @@ func (p *Web3ClientVersion) Method() string {
 }
 
 func (p *Web3ClientVersion) Request(_ *eth.JSONRPCRequest, c echo.Context) (interface{}, eth.JSONRPCError) {
-	return "QTUM ETHTestRPC/ethereum-js", nil
+	return "HTMLCOIN ETHTestRPC/ethereum-js", nil
 }
 
-// func (p *Web3ClientVersion) ToResponse(ethresp *qtum.CallContractResponse) *eth.CallResponse {
+// func (p *Web3ClientVersion) ToResponse(ethresp *htmlcoin.CallContractResponse) *eth.CallResponse {
 // 	data := utils.AddHexPrefix(ethresp.ExecutionResult.Output)
-// 	qtumresp := eth.CallResponse(data)
-// 	return &qtumresp
+// 	htmlcoinresp := eth.CallResponse(data)
+// 	return &htmlcoinresp
 // }
