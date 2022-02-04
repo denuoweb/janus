@@ -2,14 +2,14 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/notifier"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/notifier"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ETHSubscribe implements ETHProxy
 type ETHSubscribe struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 	*notifier.Agent
 }
 
