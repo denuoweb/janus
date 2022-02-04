@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 func TestGetTransactionReceiptForNonVMTransaction(t *testing.T) {
@@ -20,32 +20,32 @@ func TestGetTransactionReceiptForNonVMTransaction(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing client response
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodGetTransactionReceipt, []byte("[]"))
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodGetTransactionReceipt, []byte("[]"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rawTransactionResponse := &qtum.GetRawTransactionResponse{
+	rawTransactionResponse := &htmlcoin.GetRawTransactionResponse{
 		BlockHash: internal.GetTransactionByHashBlockHash,
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(3, qtum.MethodGetRawTransaction, rawTransactionResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(3, htmlcoin.MethodGetRawTransaction, rawTransactionResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = mockedClientDoer.AddResponseWithRequestID(4, qtum.MethodGetBlock, internal.GetBlockResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(4, htmlcoin.MethodGetBlock, internal.GetBlockResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetTransactionReceipt{qtumClient}
+	proxyEth := ProxyETHGetTransactionReceipt{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
@@ -60,8 +60,8 @@ func TestGetTransactionReceiptForNonVMTransaction(t *testing.T) {
 		Logs:              []eth.Log{},
 		EffectiveGasPrice: "0x0",
 		CumulativeGasUsed: NonContractVMGasLimit,
-		To:                utils.AddHexPrefix(qtum.ZeroAddress),
-		From:              utils.AddHexPrefix(qtum.ZeroAddress),
+		To:                utils.AddHexPrefix(htmlcoin.ZeroAddress),
+		From:              utils.AddHexPrefix(htmlcoin.ZeroAddress),
 		LogsBloom:         eth.EmptyLogsBloom,
 		Status:            STATUS_SUCCESS,
 	}
