@@ -1,9 +1,9 @@
-img_tag = "hayeah/qtumportal:testjanus"
-container_name = "qtumportal-testjanus"
+img_tag = "username/htmlcoinportal:testjanus"
+container_name = "htmlcoinportal-testjanus"
 
 .PHONY: image
 image:
-	GOOS=linux GOARCH=amd64 go build -o ./docker/janus-linux-amd64 github.com/qtumproject/janus/cli/janus
+	GOOS=linux GOARCH=amd64 go build -o ./docker/janus-linux-amd64 github.com/htmlcoin/janus/cli/janus
 	docker build ./docker -t $(img_tag)
 
 .PHONY: run
@@ -20,15 +20,15 @@ exec:
 
 .PHONY: init-container
 init-container:
-	docker exec -it qtumportal-testjanus sh init-container.sh
+	docker exec -it htmlcoinportal-testjanus sh init-container.sh
 
 .PHONY: logs
 logs:
 	docker logs --tail 1000  -f $(container_name)
 
-.PHONY: clean-qtum-data
-clean-qtum-data:
-	rm -rf ./docker/.qtum
+.PHONY: clean-htmlcoin-data
+clean-htmlcoin-data:
+	rm -rf ./docker/.htmlcoin
 
 .PHONY: deploy-contracts
 deploy-contracts:
