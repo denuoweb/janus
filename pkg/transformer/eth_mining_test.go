@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestMiningRequest(t *testing.T) {
@@ -19,18 +19,18 @@ func TestMiningRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	getMiningResponse := qtum.GetMiningResponse{Staking: true}
-	err = mockedClientDoer.AddResponse(qtum.MethodGetStakingInfo, getMiningResponse)
+	getMiningResponse := htmlcoin.GetMiningResponse{Staking: true}
+	err = mockedClientDoer.AddResponse(htmlcoin.MethodGetStakingInfo, getMiningResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	proxyEth := ProxyETHMining{qtumClient}
+	proxyEth := ProxyETHMining{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
