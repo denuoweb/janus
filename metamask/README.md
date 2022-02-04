@@ -1,4 +1,4 @@
-# Simple VUE project to switch to QTUM network via Metamask
+# Simple VUE project to switch to HTMLCOIN network via Metamask
 
 ## Project setup
 ```
@@ -21,24 +21,24 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 ### wallet_addEthereumChain
 ```
 // request account access
-window.qtum.request({ method: 'eth_requestAccounts' })
+window.htmlcoin.request({ method: 'eth_requestAccounts' })
     .then(() => {
         // add chain
-        window.qtum.request({
+        window.htmlcoin.request({
             method: "wallet_addEthereumChain",
             params: [{
                 {
-                    chainId: '0x22B9',
-                    chainName: 'Qtum Testnet',
-                    rpcUrls: ['https://localhost:23889'],
-                    blockExplorerUrls: ['https://testnet.qtum.info/'],
+                    chainId: '0x115D',
+                    chainName: 'Htmlcoin Testnet',
+                    rpcUrls: ['https://localhost:24889'],
+                    blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
                     iconUrls: [
-                        'https://qtum.info/images/metamask_icon.svg',
-                        'https://qtum.info/images/metamask_icon.png',
+                        'https://htmlcoin.com/images/metamask_icon.svg',
+                        'https://htmlcoin.com/images/metamask_icon.png',
                     ],
                     nativeCurrency: {
                         decimals: 18,
-                        symbol: 'QTUM',
+                        symbol: 'HTML',
                     },
                 }
             }],
