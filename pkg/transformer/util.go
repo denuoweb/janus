@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcutil/base58"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/utils"
 	"github.com/shopspring/decimal"
 )
 
@@ -28,10 +28,10 @@ type EthGas interface {
 	GasPriceHex() string
 }
 
-func EthGasToQtum(g EthGas) (gasLimit *big.Int, gasPrice string, err error) {
+func EthGasToHtmlcoin(g EthGas) (gasLimit *big.Int, gasPrice string, err error) {
 	gasLimit = g.(*eth.SendTransactionRequest).Gas.Int
 
-	gasPriceDecimal, err := EthValueToQtumAmount(g.GasPriceHex(), MinimumGas)
+	gasPriceDecimal, err := EthValueToHtmlcoinAmount(g.GasPriceHex(), MinimumGas)
 	if err != nil {
 		return nil, "0.0", err
 	}
@@ -43,10 +43,10 @@ func EthGasToQtum(g EthGas) (gasLimit *big.Int, gasPrice string, err error) {
 	return
 }
 
-func QtumGasToEth(g EthGas) (gasLimit *big.Int, gasPrice string, err error) {
+func HtmlcoinGasToEth(g EthGas) (gasLimit *big.Int, gasPrice string, err error) {
 	gasLimit = g.(*eth.SendTransactionRequest).Gas.Int
 
-	gasPriceDecimal, err := EthValueToQtumAmount(g.GasPriceHex(), MinimumGas)
+	gasPriceDecimal, err := EthValueToHtmlcoinAmount(g.GasPriceHex(), MinimumGas)
 	if err != nil {
 		return nil, "0.0", err
 	}
@@ -58,7 +58,7 @@ func QtumGasToEth(g EthGas) (gasLimit *big.Int, gasPrice string, err error) {
 	return
 }
 
-func EthValueToQtumAmount(val string, defaultValue decimal.Decimal) (decimal.Decimal, error) {
+func EthValueToHtmlcoinAmount(val string, defaultValue decimal.Decimal) (decimal.Decimal, error) {
 	if val == "" {
 		return defaultValue, nil
 	}
@@ -73,11 +73,11 @@ func EthValueToQtumAmount(val string, defaultValue decimal.Decimal) (decimal.Dec
 		return ZeroSatoshi, errors.New("decimal.NewFromString was not a success")
 	}
 
-	return EthDecimalValueToQtumAmount(ethValDecimal), nil
+	return EthDecimalValueToHtmlcoinAmount(ethValDecimal), nil
 }
 
-func EthDecimalValueToQtumAmount(ethValDecimal decimal.Decimal) decimal.Decimal {
-	// Convert Wei to Qtum
+func EthDecimalValueToHtmlcoinAmount(ethValDecimal decimal.Decimal) decimal.Decimal {
+	// Convert Wei to Htmlcoin
 	// 10000000000
 	// one satoshi is 0.00000001
 	// we need to drop precision for values smaller than that
@@ -87,32 +87,32 @@ func EthDecimalValueToQtumAmount(ethValDecimal decimal.Decimal) decimal.Decimal 
 	return amount
 }
 
-func QtumValueToETHAmount(val string, defaultValue decimal.Decimal) (decimal.Decimal, error) {
+func HtmlcoinValueToETHAmount(val string, defaultValue decimal.Decimal) (decimal.Decimal, error) {
 	if val == "" {
 		return defaultValue, nil
 	}
 
-	qtumVal, err := utils.DecodeBig(val)
+	htmlcoinVal, err := utils.DecodeBig(val)
 	if err != nil {
 		return ZeroSatoshi, err
 	}
 
-	qtumValDecimal, err := decimal.NewFromString(qtumVal.String())
+	htmlcoinValDecimal, err := decimal.NewFromString(htmlcoinVal.String())
 	if err != nil {
 		return ZeroSatoshi, errors.New("decimal.NewFromString was not a success")
 	}
 
-	return QtumDecimalValueToETHAmount(qtumValDecimal), nil
+	return HtmlcoinDecimalValueToETHAmount(htmlcoinValDecimal), nil
 }
 
-func QtumDecimalValueToETHAmount(qtumValDecimal decimal.Decimal) decimal.Decimal {
-	// Computes inverse of EthDecimalValueToQtumAmount
-	amount := qtumValDecimal.Div(decimal.NewFromFloat(float64(1e-18)))
+func HtmlcoinDecimalValueToETHAmount(htmlcoinValDecimal decimal.Decimal) decimal.Decimal {
+	// Computes inverse of EthDecimalValueToHtmlcoinAmount
+	amount := htmlcoinValDecimal.Div(decimal.NewFromFloat(float64(1e-18)))
 
 	return amount
 }
 
-func formatQtumAmount(amount decimal.Decimal) (string, error) {
+func formatHtmlcoinAmount(amount decimal.Decimal) (string, error) {
 	decimalAmount := amount.Mul(decimal.NewFromFloat(float64(1e18)))
 
 	//convert decimal to Integer
@@ -136,13 +136,13 @@ func unmarshalRequest(data []byte, v interface{}) error {
 // 	- is not for reward transactions
 // 	- Vin[i].N (vout number) -> get Transaction(txID).Vout[N].Address
 // 	- returning address already has 0x prefix
-func getNonContractTxSenderAddress(p *qtum.Qtum, vins []*qtum.DecodedRawTransactionInV) (string, error) {
+func getNonContractTxSenderAddress(p *htmlcoin.Htmlcoin, vins []*htmlcoin.DecodedRawTransactionInV) (string, error) {
 	for _, vin := range vins {
-		prevQtumTx, err := p.GetRawTransaction(vin.TxID, false)
+		prevHtmlcoinTx, err := p.GetRawTransaction(vin.TxID, false)
 		if err != nil {
 			return "", errors.WithMessage(err, "couldn't get vin's previous transaction")
 		}
-		for _, out := range prevQtumTx.Vouts {
+		for _, out := range prevHtmlcoinTx.Vouts {
 			for _, address := range out.Details.Addresses {
 				return utils.AddHexPrefix(address), nil
 			}
@@ -161,11 +161,11 @@ func getNonContractTxSenderAddress(p *qtum.Qtum, vins []*qtum.DecodedRawTransact
 //
 // 	TODO: researching
 // 	- Vout[0].Addresses[i] != "" - temporary solution
-func findNonContractTxReceiverAddress(vouts []*qtum.DecodedRawTransactionOutV) (string, error) {
+func findNonContractTxReceiverAddress(vouts []*htmlcoin.DecodedRawTransactionOutV) (string, error) {
 	for _, vout := range vouts {
 		for _, address := range vout.ScriptPubKey.Addresses {
 			if address != "" {
-				hex, err := utils.ConvertQtumAddress(address)
+				hex, err := utils.ConvertHtmlcoinAddress(address)
 				if err != nil {
 					return "", err
 				}
@@ -176,7 +176,7 @@ func findNonContractTxReceiverAddress(vouts []*qtum.DecodedRawTransactionOutV) (
 	return "", errors.New("not found")
 }
 
-func getBlockNumberByHash(p *qtum.Qtum, hash string) (uint64, error) {
+func getBlockNumberByHash(p *htmlcoin.Htmlcoin, hash string) (uint64, error) {
 	block, err := p.GetBlock(hash)
 	if err != nil {
 		return 0, errors.WithMessage(err, "couldn't get block")
@@ -185,7 +185,7 @@ func getBlockNumberByHash(p *qtum.Qtum, hash string) (uint64, error) {
 	return uint64(block.Height), nil
 }
 
-func getTransactionIndexInBlock(p *qtum.Qtum, txHash string, blockHash string) (int64, error) {
+func getTransactionIndexInBlock(p *htmlcoin.Htmlcoin, txHash string, blockHash string) (int64, error) {
 	block, err := p.GetBlock(blockHash)
 	if err != nil {
 		return -1, errors.WithMessage(err, "couldn't get block")
@@ -200,7 +200,7 @@ func getTransactionIndexInBlock(p *qtum.Qtum, txHash string, blockHash string) (
 	return -1, errors.New("not found")
 }
 
-func formatQtumNonce(nonce int) string {
+func formatHtmlcoinNonce(nonce int) string {
 	var (
 		hexedNonce     = strconv.FormatInt(int64(nonce), 16)
 		missedCharsNum = 16 - len(hexedNonce)
@@ -211,7 +211,7 @@ func formatQtumNonce(nonce int) string {
 	return "0x" + hexedNonce
 }
 
-// Returns Qtum block number. Result depends on a passed raw param. Raw param's slice of bytes should
+// Returns Htmlcoin block number. Result depends on a passed raw param. Raw param's slice of bytes should
 // has one of the following values:
 // 	- hex string representation of a number of a specific block
 //  - integer - returns the value
@@ -219,7 +219,7 @@ func formatQtumNonce(nonce int) string {
 // 	- string "earliest" for the genesis block
 // 	- string "pending" - for the pending state/transactions
 // Uses defaultVal to differntiate from a eth_getBlockByNumber req and eth_getLogs/eth_newFilter
-func getBlockNumberByRawParam(p *qtum.Qtum, rawParam json.RawMessage, defaultVal bool) (*big.Int, eth.JSONRPCError) {
+func getBlockNumberByRawParam(p *htmlcoin.Htmlcoin, rawParam json.RawMessage, defaultVal bool) (*big.Int, eth.JSONRPCError) {
 	var param string
 	if isBytesOfString(rawParam) {
 		param = string(rawParam[1 : len(rawParam)-1]) // trim \" runes
@@ -234,7 +234,7 @@ func getBlockNumberByRawParam(p *qtum.Qtum, rawParam json.RawMessage, defaultVal
 	return getBlockNumberByParam(p, param, defaultVal)
 }
 
-func getBlockNumberByParam(p *qtum.Qtum, param string, defaultVal bool) (*big.Int, eth.JSONRPCError) {
+func getBlockNumberByParam(p *htmlcoin.Htmlcoin, param string, defaultVal bool) (*big.Int, eth.JSONRPCError) {
 	if len(param) < 1 {
 		if defaultVal {
 			res, err := p.GetBlockChainInfo()
@@ -294,10 +294,10 @@ func isBytesOfString(v json.RawMessage) bool {
 	return true
 }
 
-// Converts Ethereum address to a Qtum address, where `address` represents
-// Ethereum address without `0x` prefix and `chain` represents target Qtum
+// Converts Ethereum address to a Htmlcoin address, where `address` represents
+// Ethereum address without `0x` prefix and `chain` represents target Htmlcoin
 // chain
-func convertETHAddress(address string, chain string) (qtumAddress string, _ error) {
+func convertETHAddress(address string, chain string) (htmlcoinAddress string, _ error) {
 	addrBytes, err := hex.DecodeString(address)
 	if err != nil {
 		return "", errors.Wrapf(err, "couldn't decode hexed address - %q", address)
@@ -305,30 +305,30 @@ func convertETHAddress(address string, chain string) (qtumAddress string, _ erro
 
 	var prefix []byte
 	switch chain {
-	case qtum.ChainMain:
-		chainPrefix, err := qtum.PrefixMainChainAddress.AsBytes()
+	case htmlcoin.ChainMain:
+		chainPrefix, err := htmlcoin.PrefixMainChainAddress.AsBytes()
 		if err != nil {
-			return "", errors.WithMessagef(err, "couldn't convert %q Qtum chain prefix to slice of bytes", chain)
+			return "", errors.WithMessagef(err, "couldn't convert %q Htmlcoin chain prefix to slice of bytes", chain)
 		}
 		prefix = chainPrefix
 
-	case qtum.ChainTest, qtum.ChainRegTest:
-		chainPrefix, err := qtum.PrefixTestChainAddress.AsBytes()
+	case htmlcoin.ChainTest, htmlcoin.ChainRegTest:
+		chainPrefix, err := htmlcoin.PrefixTestChainAddress.AsBytes()
 		if err != nil {
-			return "", errors.WithMessagef(err, "couldn't convert %q Qtum chain prefix to slice of bytes", chain)
+			return "", errors.WithMessagef(err, "couldn't convert %q Htmlcoin chain prefix to slice of bytes", chain)
 		}
 		prefix = chainPrefix
 
 	default:
-		return "", errors.Errorf("unsupported %q Qtum chain", chain)
+		return "", errors.Errorf("unsupported %q Htmlcoin chain", chain)
 	}
 
 	var (
 		prefixedAddrBytes = append(prefix, addrBytes...)
-		checksum          = qtum.CalcAddressChecksum(prefixedAddrBytes)
-		qtumAddressBytes  = append(prefixedAddrBytes, checksum...)
+		checksum          = htmlcoin.CalcAddressChecksum(prefixedAddrBytes)
+		htmlcoinAddressBytes  = append(prefixedAddrBytes, checksum...)
 	)
-	return base58.Encode(qtumAddressBytes), nil
+	return base58.Encode(htmlcoinAddressBytes), nil
 }
 
 func processFilter(p *ProxyETHGetFilterChanges, rawreq *eth.JSONRPCRequest) (*eth.Filter, eth.JSONRPCError) {
@@ -352,14 +352,14 @@ func processFilter(p *ProxyETHGetFilterChanges, rawreq *eth.JSONRPCRequest) (*et
 	return filter, nil
 }
 
-// Converts a satoshis to qtum balance
-func convertFromSatoshisToQtum(inSatoshis decimal.Decimal) decimal.Decimal {
+// Converts a satoshis to htmlcoin balance
+func convertFromSatoshisToHtmlcoin(inSatoshis decimal.Decimal) decimal.Decimal {
 	return inSatoshis.Div(decimal.NewFromFloat(float64(1e8)))
 }
 
-// Converts a qtum balance to satoshis
-func convertFromQtumToSatoshis(inQtum decimal.Decimal) decimal.Decimal {
-	return inQtum.Mul(decimal.NewFromFloat(float64(1e8)))
+// Converts a htmlcoin balance to satoshis
+func convertFromHtmlcoinToSatoshis(inHtmlcoin decimal.Decimal) decimal.Decimal {
+	return inHtmlcoin.Mul(decimal.NewFromFloat(float64(1e8)))
 }
 
 func convertFromSatoshiToWei(inSatoshis *big.Int) *big.Int {
