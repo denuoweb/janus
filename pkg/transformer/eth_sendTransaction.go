@@ -2,9 +2,9 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 	"github.com/shopspring/decimal"
 )
 
@@ -12,7 +12,7 @@ var MinimumGasLimit = int64(22000)
 
 // ProxyETHSendTransaction implements ETHProxy
 type ProxyETHSendTransaction struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHSendTransaction) Method() string {
@@ -52,7 +52,7 @@ func (p *ProxyETHSendTransaction) Request(rawreq *eth.JSONRPCRequest, c echo.Con
 }
 
 func (p *ProxyETHSendTransaction) requestSendToContract(ethtx *eth.SendTransactionRequest) (*eth.SendTransactionResponse, eth.JSONRPCError) {
-	gasLimit, gasPrice, err := EthGasToQtum(ethtx)
+	gasLimit, gasPrice, err := EthGasToHtmlcoin(ethtx)
 	if err != nil {
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
@@ -60,13 +60,13 @@ func (p *ProxyETHSendTransaction) requestSendToContract(ethtx *eth.SendTransacti
 	amount := decimal.NewFromFloat(0.0)
 	if ethtx.Value != "" {
 		var err error
-		amount, err = EthValueToQtumAmount(ethtx.Value, ZeroSatoshi)
+		amount, err = EthValueToHtmlcoinAmount(ethtx.Value, ZeroSatoshi)
 		if err != nil {
 			return nil, eth.NewInvalidParamsError(err.Error())
 		}
 	}
 
-	qtumreq := qtum.SendToContractRequest{
+	htmlcoinreq := htmlcoin.SendToContractRequest{
 		ContractAddress: utils.RemoveHexPrefix(ethtx.To),
 		Datahex:         utils.RemoveHexPrefix(ethtx.Data),
 		Amount:          amount,
@@ -79,11 +79,11 @@ func (p *ProxyETHSendTransaction) requestSendToContract(ethtx *eth.SendTransacti
 		if err != nil {
 			return nil, eth.NewCallbackError(err.Error())
 		}
-		qtumreq.SenderAddress = from
+		htmlcoinreq.SenderAddress = from
 	}
 
-	var resp *qtum.SendToContractResponse
-	if err := p.Qtum.Request(qtum.MethodSendToContract, &qtumreq, &resp); err != nil {
+	var resp *htmlcoin.SendToContractResponse
+	if err := p.Htmlcoin.Request(htmlcoin.MethodSendToContract, &htmlcoinreq, &resp); err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
@@ -92,38 +92,38 @@ func (p *ProxyETHSendTransaction) requestSendToContract(ethtx *eth.SendTransacti
 }
 
 func (p *ProxyETHSendTransaction) requestSendToAddress(req *eth.SendTransactionRequest) (*eth.SendTransactionResponse, eth.JSONRPCError) {
-	getQtumWalletAddress := func(addr string) (string, error) {
+	getHtmlcoinWalletAddress := func(addr string) (string, error) {
 		if utils.IsEthHexAddress(addr) {
 			return p.FromHexAddress(utils.RemoveHexPrefix(addr))
 		}
 		return addr, nil
 	}
 
-	from, err := getQtumWalletAddress(req.From)
+	from, err := getHtmlcoinWalletAddress(req.From)
 	if err != nil {
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	to, err := getQtumWalletAddress(req.To)
+	to, err := getHtmlcoinWalletAddress(req.To)
 	if err != nil {
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	amount, err := EthValueToQtumAmount(req.Value, ZeroSatoshi)
+	amount, err := EthValueToHtmlcoinAmount(req.Value, ZeroSatoshi)
 	if err != nil {
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	p.GetDebugLogger().Log("msg", "successfully converted from wei to QTUM", "wei", req.Value, "qtum", amount)
+	p.GetDebugLogger().Log("msg", "successfully converted from wei to HTML", "wei", req.Value, "htmlcoin", amount)
 
-	qtumreq := qtum.SendToAddressRequest{
+	htmlcoinreq := htmlcoin.SendToAddressRequest{
 		Address:       to,
 		Amount:        amount,
 		SenderAddress: from,
 	}
 
-	var qtumresp qtum.SendToAddressResponse
-	if err := p.Qtum.Request(qtum.MethodSendToAddress, &qtumreq, &qtumresp); err != nil {
+	var htmlcoinresp htmlcoin.SendToAddressResponse
+	if err := p.Htmlcoin.Request(htmlcoin.MethodSendToAddress, &htmlcoinreq, &htmlcoinresp); err != nil {
 		// this can fail with:
 		// "error": {
 		//   "code": -3,
@@ -134,18 +134,18 @@ func (p *ProxyETHSendTransaction) requestSendToAddress(req *eth.SendTransactionR
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	ethresp := eth.SendTransactionResponse(utils.AddHexPrefix(string(qtumresp)))
+	ethresp := eth.SendTransactionResponse(utils.AddHexPrefix(string(htmlcoinresp)))
 
 	return &ethresp, nil
 }
 
 func (p *ProxyETHSendTransaction) requestCreateContract(req *eth.SendTransactionRequest) (*eth.SendTransactionResponse, eth.JSONRPCError) {
-	gasLimit, gasPrice, err := EthGasToQtum(req)
+	gasLimit, gasPrice, err := EthGasToHtmlcoin(req)
 	if err != nil {
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	qtumreq := &qtum.CreateContractRequest{
+	htmlcoinreq := &htmlcoin.CreateContractRequest{
 		ByteCode: utils.RemoveHexPrefix(req.Data),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
@@ -160,11 +160,11 @@ func (p *ProxyETHSendTransaction) requestCreateContract(req *eth.SendTransaction
 			}
 		}
 
-		qtumreq.SenderAddress = from
+		htmlcoinreq.SenderAddress = from
 	}
 
-	var resp *qtum.CreateContractResponse
-	if err := p.Qtum.Request(qtum.MethodCreateContract, qtumreq, &resp); err != nil {
+	var resp *htmlcoin.CreateContractResponse
+	if err := p.Htmlcoin.Request(htmlcoin.MethodCreateContract, htmlcoinreq, &resp); err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
