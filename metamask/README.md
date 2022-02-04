@@ -37,7 +37,7 @@ window.htmlcoin.request({ method: 'eth_requestAccounts' })
                         'https://htmlcoin.com/images/metamask_icon.png',
                     ],
                     nativeCurrency: {
-                        decimals: 18,
+                        decimals: 20,
                         symbol: 'HTML',
                     },
                 }
