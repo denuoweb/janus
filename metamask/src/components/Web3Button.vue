@@ -20,7 +20,7 @@ let HTMLCOINMainnet = {
     'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
-    decimals: 20,
+    decimals: 18,
     symbol: 'HTMLCOIN',
   },
 };
@@ -34,7 +34,7 @@ let HTMLCOINTestNet = {
     'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
-    decimals: 20,
+    decimals: 18,
     symbol: 'HTMLCOIN',
   },
 };
@@ -48,7 +48,7 @@ let HTMLCOINRegTest = {
     'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
-    decimals: 20,
+    decimals: 18,
     symbol: 'HTML',
   },
 };
