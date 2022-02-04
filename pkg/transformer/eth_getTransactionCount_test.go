@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/internal"
 )
 
 func TestGetTransactionCountRequest(t *testing.T) {
@@ -17,13 +17,13 @@ func TestGetTransactionCountRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHTxCount{qtumClient}
+	proxyEth := ProxyETHTxCount{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
