@@ -5,13 +5,13 @@ import (
 
 	"github.com/dcb9/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHNewFilter implements ETHProxy
 type ProxyETHNewFilter struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 	filter *eth.FilterSimulator
 }
 
@@ -31,12 +31,12 @@ func (p *ProxyETHNewFilter) Request(rawreq *eth.JSONRPCRequest, c echo.Context) 
 
 func (p *ProxyETHNewFilter) request(ethreq *eth.NewFilterRequest) (*eth.NewFilterResponse, eth.JSONRPCError) {
 
-	from, err := getBlockNumberByRawParam(p.Qtum, ethreq.FromBlock, true)
+	from, err := getBlockNumberByRawParam(p.Htmlcoin, ethreq.FromBlock, true)
 	if err != nil {
 		return nil, err
 	}
 
-	to, err := getBlockNumberByRawParam(p.Qtum, ethreq.ToBlock, true)
+	to, err := getBlockNumberByRawParam(p.Htmlcoin, ethreq.ToBlock, true)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (p *ProxyETHNewFilter) request(ethreq *eth.NewFilterRequest) (*eth.NewFilte
 		if err != nil {
 			return nil, eth.NewCallbackError(err.Error())
 		}
-		filter.Data.Store("topics", qtum.NewSearchLogsTopics(topics))
+		filter.Data.Store("topics", htmlcoin.NewSearchLogsTopics(topics))
 	}
 	resp := eth.NewFilterResponse(hexutil.EncodeUint64(filter.ID))
 	return &resp, nil
