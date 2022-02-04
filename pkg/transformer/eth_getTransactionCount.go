@@ -5,13 +5,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHEstimateGas implements ETHProxy
 type ProxyETHTxCount struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHTxCount) Method() string {
@@ -25,15 +25,15 @@ func (p *ProxyETHTxCount) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (i
 	if err := unmarshalRequest(rawreq.Params, &req); err != nil {
 		return nil, err
 	}*/
-	qtumresp, err := p.Qtum.GetTransactionCount("", "")
+	htmlcoinresp, err := p.Htmlcoin.GetTransactionCount("", "")
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	// qtum res -> eth res
-	return p.response(qtumresp), nil
+	// htmlcoin res -> eth res
+	return p.response(htmlcoinresp), nil
 }
 
-func (p *ProxyETHTxCount) response(qtumresp *big.Int) string {
-	return hexutil.EncodeBig(qtumresp)
+func (p *ProxyETHTxCount) response(htmlcoinresp *big.Int) string {
+	return hexutil.EncodeBig(htmlcoinresp)
 }
