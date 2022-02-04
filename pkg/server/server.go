@@ -16,15 +16,15 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/transformer"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/transformer"
 )
 
 type Server struct {
 	address       string
 	transformer   *transformer.Transformer
-	qtumRPCClient *qtum.Qtum
+	htmlcoinRPCClient *htmlcoin.Htmlcoin
 	logWriter     io.Writer
 	logger        log.Logger
 	httpsKey      string
@@ -35,7 +35,7 @@ type Server struct {
 }
 
 func New(
-	qtumRPCClient *qtum.Qtum,
+	htmlcoinRPCClient *htmlcoin.Htmlcoin,
 	transformer *transformer.Transformer,
 	addr string,
 	opts ...Option,
@@ -44,7 +44,7 @@ func New(
 		logger:        log.NewNopLogger(),
 		echo:          echo.New(),
 		address:       addr,
-		qtumRPCClient: qtumRPCClient,
+		htmlcoinRPCClient: htmlcoinRPCClient,
 		transformer:   transformer,
 	}
 
@@ -63,7 +63,7 @@ func (s *Server) Start() error {
 	e := s.echo
 
 	health := healthcheck.NewHandler()
-	health.AddLivenessCheck("qtumd-connection", func() error { return s.testConnectionToQtumd() })
+	health.AddLivenessCheck("htmlcoind-connection", func() error { return s.testConnectionToHtmlcoind() })
 
 	e.Use(middleware.CORS())
 	e.Use(middleware.BodyDump(func(c echo.Context, req []byte, res []byte) {
@@ -74,8 +74,8 @@ func (s *Server) Start() error {
 		}
 
 		if s.debug {
-			reqBody, reqErr := qtum.ReformatJSON(req)
-			resBody, resErr := qtum.ReformatJSON(res)
+			reqBody, reqErr := htmlcoin.ReformatJSON(req)
+			resBody, resErr := htmlcoin.ReformatJSON(res)
 			if reqErr == nil && resErr == nil {
 				cc.GetDebugLogger().Log("msg", "ETH RPC")
 				fmt.Fprintf(logWriter, "=> ETH request\n%s\n", reqBody)
@@ -133,9 +133,9 @@ func (s *Server) Start() error {
 	}
 
 	https := (s.httpsKey != "" && s.httpsCert != "")
-	// TODO: Upgrade golang to 1.15 to support s.qtumRPCClient.GetURL().Redacted() here
-	url := s.qtumRPCClient.URL
-	level.Info(s.logger).Log("listen", s.address, "qtum_rpc", url, "msg", "proxy started", "https", https)
+	// TODO: Upgrade golang to 1.15 to support s.htmlcoinRPCClient.GetURL().Redacted() here
+	url := s.htmlcoinRPCClient.URL
+	level.Info(s.logger).Log("listen", s.address, "htmlcoin_rpc", url, "msg", "proxy started", "https", https)
 
 	if https {
 		level.Info(s.logger).Log("msg", "SSL enabled")
