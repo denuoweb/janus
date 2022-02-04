@@ -1,4 +1,4 @@
-package qtum
+package htmlcoin
 
 import (
 	"encoding/json"
