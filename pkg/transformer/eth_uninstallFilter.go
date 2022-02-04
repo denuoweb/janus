@@ -3,13 +3,13 @@ package transformer
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHUninstallFilter implements ETHProxy
 type ProxyETHUninstallFilter struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 	filter *eth.FilterSimulator
 }
 
