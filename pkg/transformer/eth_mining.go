@@ -2,13 +2,13 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 //ProxyETHGetHashrate implements ETHProxy
 type ProxyETHMining struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHMining) Method() string {
@@ -20,16 +20,16 @@ func (p *ProxyETHMining) Request(_ *eth.JSONRPCRequest, c echo.Context) (interfa
 }
 
 func (p *ProxyETHMining) request() (*eth.MiningResponse, eth.JSONRPCError) {
-	qtumresp, err := p.Qtum.GetMining()
+	htmlcoinresp, err := p.Htmlcoin.GetMining()
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	// qtum res -> eth res
-	return p.ToResponse(qtumresp), nil
+	// htmlcoin res -> eth res
+	return p.ToResponse(htmlcoinresp), nil
 }
 
-func (p *ProxyETHMining) ToResponse(qtumresp *qtum.GetMiningResponse) *eth.MiningResponse {
-	ethresp := eth.MiningResponse(qtumresp.Staking)
+func (p *ProxyETHMining) ToResponse(htmlcoinresp *htmlcoin.GetMiningResponse) *eth.MiningResponse {
+	ethresp := eth.MiningResponse(htmlcoinresp.Staking)
 	return &ethresp
 }
