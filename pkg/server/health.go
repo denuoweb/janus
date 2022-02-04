@@ -1,6 +1,6 @@
 package server
 
-func (s *Server) testConnectionToQtumd() error {
-	_, err := s.qtumRPCClient.GetNetworkInfo()
+func (s *Server) testConnectionToHtmlcoind() error {
+	_, err := s.htmlcoinRPCClient.GetNetworkInfo()
 	return err
 }
