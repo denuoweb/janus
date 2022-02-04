@@ -3,13 +3,13 @@ package transformer
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHNetVersion implements ETHProxy
 type ProxyETHNetVersion struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHNetVersion) Method() string {
@@ -21,7 +21,7 @@ func (p *ProxyETHNetVersion) Request(_ *eth.JSONRPCRequest, c echo.Context) (int
 }
 
 func (p *ProxyETHNetVersion) request() (*eth.NetVersionResponse, eth.JSONRPCError) {
-	networkID, err := getChainId(p.Qtum)
+	networkID, err := getChainId(p.Htmlcoin)
 	if err != nil {
 		return nil, err
 	}
