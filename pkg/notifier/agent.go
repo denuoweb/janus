@@ -10,9 +10,9 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 var agentConfigNewHeadsKey = "newHeadsInterval"
@@ -23,19 +23,19 @@ type Transformer interface {
 	Transform(req *eth.JSONRPCRequest, c echo.Context) (interface{}, eth.JSONRPCError)
 }
 
-func NewAgent(ctx context.Context, qtum *qtum.Qtum, transformer Transformer) *Agent {
-	return newAgentWithConfiguration(ctx, qtum, transformer, make(map[string]interface{}))
+func NewAgent(ctx context.Context, htmlcoin *htmlcoin.Htmlcoin, transformer Transformer) *Agent {
+	return newAgentWithConfiguration(ctx, htmlcoin, transformer, make(map[string]interface{}))
 }
 
-func newAgentWithConfiguration(ctx context.Context, qtum *qtum.Qtum, transformer Transformer, configuration map[string]interface{}) *Agent {
+func newAgentWithConfiguration(ctx context.Context, htmlcoin *htmlcoin.Htmlcoin, transformer Transformer, configuration map[string]interface{}) *Agent {
 	if ctx == nil {
 		panic("ctx cannot be nil")
 	}
-	if qtum == nil {
-		panic("qtum cannot be nil")
+	if htmlcoin == nil {
+		panic("htmlcoin cannot be nil")
 	}
 	agent := &Agent{
-		qtum:          qtum,
+		htmlcoin:      htmlcoin,
 		transformer:   transformer,
 		ctx:           ctx,
 		mutex:         sync.RWMutex{},
@@ -112,7 +112,7 @@ func (s *subscriptionRegistry) SendAll(message interface{}) {
 }
 
 type Agent struct {
-	qtum          *qtum.Qtum
+	htmlcoin      *htmlcoin.Htmlcoin
 	transformer   Transformer
 	ctx           context.Context
 	mutex         sync.RWMutex
@@ -254,7 +254,7 @@ func (a *Agent) NewSubscription(notifier *Notifier, params *eth.EthSubscriptionR
 		wrappedContext,
 		cancel,
 		false,
-		a.qtum,
+		a.htmlcoin,
 	}
 
 	switch strings.ToLower(params.Method) {
@@ -305,7 +305,7 @@ func (a *Agent) run() {
 		a.mutex.Lock()
 		defer a.mutex.Unlock()
 
-		a.qtum.GetDebugLogger().Log("msg", "Agent exited subscription processing thread")
+		a.htmlcoin.GetDebugLogger().Log("msg", "Agent exited subscription processing thread")
 
 		a.running = false
 	}()
@@ -331,7 +331,7 @@ func (a *Agent) run() {
 	}
 
 	// TODO: newPendingTransactions
-	a.qtum.GetDebugLogger().Log("msg", "Agent started subscription processing thread")
+	a.htmlcoin.GetDebugLogger().Log("msg", "Agent started subscription processing thread")
 
 	for {
 		// infinite loop while we have subscriptions
@@ -344,19 +344,19 @@ func (a *Agent) run() {
 		transformer := a.transformer
 		a.mutex.RUnlock()
 		if transformer == nil {
-			a.qtum.GetErrorLogger().Log("msg", "Agent does not have access to eth transformer, cannot process 'newHeads' subscriptions")
+			a.htmlcoin.GetErrorLogger().Log("msg", "Agent does not have access to eth transformer, cannot process 'newHeads' subscriptions")
 		} else {
-			blockchainInfo, err := a.qtum.GetBlockChainInfo()
+			blockchainInfo, err := a.htmlcoin.GetBlockChainInfo()
 			if err != nil {
-				a.qtum.GetErrorLogger().Log("msg", "Failure getting blockchaininfo", "err", err)
+				a.htmlcoin.GetErrorLogger().Log("msg", "Failure getting blockchaininfo", "err", err)
 			} else {
 				latestBlock := blockchainInfo.Blocks
 				if lastBlock == 0 {
 					// prevent sending the current head to the first client connected
 					lastBlock = latestBlock
-					a.qtum.GetDebugLogger().Log("msg", "Got getblockchaininfo response for same block", "block", lastBlock)
+					a.htmlcoin.GetDebugLogger().Log("msg", "Got getblockchaininfo response for same block", "block", lastBlock)
 				} else if latestBlock > lastBlock {
-					a.qtum.GetDebugLogger().Log("msg", "New head detected", "block", latestBlock)
+					a.htmlcoin.GetDebugLogger().Log("msg", "New head detected", "block", latestBlock)
 					// get the latest block as an eth_getBlockByHash request
 					params, err := json.Marshal([]interface{}{
 						utils.AddHexPrefix(blockchainInfo.Bestblockhash),
@@ -371,11 +371,11 @@ func (a *Agent) run() {
 						Params:  params,
 					}, nil)
 					if jsonErr != nil {
-						a.qtum.GetErrorLogger().Log("msg", "Failed to eth_getBlockByHash", "hash", blockchainInfo.Bestblockhash, "err", jsonErr)
+						a.htmlcoin.GetErrorLogger().Log("msg", "Failed to eth_getBlockByHash", "hash", blockchainInfo.Bestblockhash, "err", jsonErr)
 					} else {
 						getBlockByHashResponse, ok := result.(*eth.GetBlockByHashResponse)
 						if !ok {
-							a.qtum.GetErrorLogger().Log("msg", "Failed to eth_getBlockByHash, unexpected response type", "hash", blockchainInfo.Bestblockhash)
+							a.htmlcoin.GetErrorLogger().Log("msg", "Failed to eth_getBlockByHash, unexpected response type", "hash", blockchainInfo.Bestblockhash)
 						} else {
 							lastBlock = latestBlock
 							// notify newHead
@@ -384,7 +384,7 @@ func (a *Agent) run() {
 						}
 					}
 				} else {
-					a.qtum.GetDebugLogger().Log("msg", "Detected same head", "block", latestBlock)
+					a.htmlcoin.GetDebugLogger().Log("msg", "Detected same head", "block", latestBlock)
 				}
 			}
 		}
