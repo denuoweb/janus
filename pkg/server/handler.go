@@ -10,9 +10,9 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/notifier"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/notifier"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 
 	"github.com/gorilla/websocket"
 )
@@ -346,8 +346,8 @@ func websocketHandler(c echo.Context) error {
 			notifier.ResponseSent()
 
 			if cc.IsDebugEnabled() {
-				reqBody, err := qtum.ReformatJSON(req)
-				resBody, err := qtum.ReformatJSON(responseBytes)
+				reqBody, err := htmlcoin.ReformatJSON(req)
+				resBody, err := htmlcoin.ReformatJSON(responseBytes)
 				if err == nil {
 					cc.GetDebugLogger().Log("msg", "ETH WEBSOCKET RPC")
 					fmt.Fprintf(cc.GetLogWriter(), "=> ETH request\n%s\n", reqBody)
