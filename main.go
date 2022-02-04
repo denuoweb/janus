@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/qtumproject/janus/cli"
+	"github.com/htmlcoin/janus/cli"
 )
 
 func main() {
