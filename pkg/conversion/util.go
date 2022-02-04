@@ -3,14 +3,14 @@ package conversion
 import (
 	"strings"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
-func ExtractETHLogsFromTransactionReceipt(blockData qtum.LogBlockData, logs []qtum.Log) []eth.Log {
+func ExtractETHLogsFromTransactionReceipt(blockData htmlcoin.LogBlockData, logs []htmlcoin.Log) []eth.Log {
 	result := make([]eth.Log, 0, len(logs))
 	for _, log := range logs {
 		topics := make([]string, 0, len(log.GetTopics()))
@@ -43,7 +43,7 @@ func ConvertLogTopicsToStringArray(topics []interface{}) []string {
 	return requestedTopics
 }
 
-func SearchLogsAndFilterExtraTopics(q *qtum.Qtum, req *qtum.SearchLogsRequest) (qtum.SearchLogsResponse, eth.JSONRPCError) {
+func SearchLogsAndFilterExtraTopics(q *htmlcoin.Htmlcoin, req *htmlcoin.SearchLogsRequest) (htmlcoin.SearchLogsResponse, eth.JSONRPCError) {
 	receipts, err := q.SearchLogs(req)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
@@ -63,10 +63,10 @@ func SearchLogsAndFilterExtraTopics(q *qtum.Qtum, req *qtum.SearchLogsRequest) (
 
 	requestedAddressesMap := populateLoopUpMapWithToLower(req.Addresses)
 
-	var filteredReceipts qtum.SearchLogsResponse
+	var filteredReceipts htmlcoin.SearchLogsResponse
 
 	for _, receipt := range receipts {
-		var logs []qtum.Log
+		var logs []htmlcoin.Log
 		for index, log := range receipt.Log {
 			log.Index = index
 			if hasAddresses && !requestedAddressesMap[strings.ToLower(log.Address)] {
@@ -86,7 +86,7 @@ func SearchLogsAndFilterExtraTopics(q *qtum.Qtum, req *qtum.SearchLogsRequest) (
 	return filteredReceipts, nil
 }
 
-func FilterQtumLogs(addresses []string, filters []qtum.SearchLogsTopic, logs []qtum.Log) []qtum.Log {
+func FilterHtmlcoinLogs(addresses []string, filters []htmlcoin.SearchLogsTopic, logs []htmlcoin.Log) []htmlcoin.Log {
 	hasTopics := len(filters) != 0
 	hasAddresses := len(addresses) != 0
 
@@ -101,7 +101,7 @@ func FilterQtumLogs(addresses []string, filters []qtum.SearchLogsTopic, logs []q
 
 	requestedAddressesMap := populateLoopUpMapWithToLower(addresses)
 
-	filteredLogs := []qtum.Log{}
+	filteredLogs := []htmlcoin.Log{}
 
 	for _, log := range logs {
 		if hasAddresses && !requestedAddressesMap[strings.ToLower(log.Address)] {
@@ -117,7 +117,7 @@ func FilterQtumLogs(addresses []string, filters []qtum.SearchLogsTopic, logs []q
 	return filteredLogs
 }
 
-func DoFiltersMatch(filters []qtum.SearchLogsTopic, topics []string) bool {
+func DoFiltersMatch(filters []htmlcoin.SearchLogsTopic, topics []string) bool {
 	filterCount := len(filters)
 	for i, topic := range topics {
 		if i >= filterCount {
