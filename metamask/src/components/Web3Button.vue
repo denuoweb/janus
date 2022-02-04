@@ -1,8 +1,8 @@
 <template>
   <div class="hello">
     <div v-if="web3Detected">
-      <b-button v-if="qtumConnected">Connected to QTUM</b-button>
-      <b-button v-else-if="connected" v-on:click="connectToQtum()">Connect to QTUM</b-button>
+      <b-button v-if="htmlcoinConnected">Connected to HTMLCOIN</b-button>
+      <b-button v-else-if="connected" v-on:click="connectToHtmlcoin()">Connect to HTMLCOIN</b-button>
       <b-button v-else v-on:click="connectToWeb3()">Connect</b-button>
     </div>
     <b-button v-else>No Web3 detected - Install metamask</b-button>
@@ -10,52 +10,52 @@
 </template>
 
 <script>
-let QTUMMainnet = {
-  chainId: '0x22B8', // 8888
-  chainName: 'QTUM Mainnet',
-  rpcUrls: ['https://janus.qiswap.com/api/'],
-  blockExplorerUrls: ['https://qtum.info/'],
+let HTMLCOINMainnet = {
+  chainId: '0x115C', // 4444
+  chainName: 'HTMLCOIN Mainnet',
+  rpcUrls: ['https://janus.htmlcoin.com/api/'],
+  blockExplorerUrls: ['https://info.htmlcoin.com/'],
   iconUrls: [
-    'https://qtum.info/images/metamask_icon.svg',
-    'https://qtum.info/images/metamask_icon.png',
+    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
-    decimals: 18,
-    symbol: 'QTUM',
+    decimals: 20,
+    symbol: 'HTMLCOIN',
   },
 };
-let QTUMTestNet = {
-  chainId: '0x22B9', // 8889
-  chainName: 'QTUM Testnet',
-  rpcUrls: ['https://testnet-janus.qiswap.com/api/'],
-  blockExplorerUrls: ['https://testnet.qtum.info/'],
+let HTMLCOINTestNet = {
+  chainId: '0x115D', // 4445
+  chainName: 'HTMLCOIN Testnet',
+  rpcUrls: ['https://testnet-janus.htmlcoin.com/api/'],
+  blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://qtum.info/images/metamask_icon.svg',
-    'https://qtum.info/images/metamask_icon.png',
+    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
-    decimals: 18,
-    symbol: 'QTUM',
+    decimals: 20,
+    symbol: 'HTMLCOIN',
   },
 };
-let QTUMRegTest = {
-  chainId: '0x22BA', // 8890
-  chainName: 'QTUM Regtest',
-  rpcUrls: ['https://localhost:23889'],
-  // blockExplorerUrls: ['https://testnet.qtum.info/'],
+let HTMLCOINRegTest = {
+  chainId: '0x115E', // 4446
+  chainName: 'HTMLCOIN Regtest',
+  rpcUrls: ['https://localhost:24889'],
+  // blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://qtum.info/images/metamask_icon.svg',
-    'https://qtum.info/images/metamask_icon.png',
+    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
-    decimals: 18,
-    symbol: 'QTUM',
+    decimals: 20,
+    symbol: 'HTML',
   },
 };
 let config = {
-  "0x22B8": QTUMMainnet,
-  "0x22B9": QTUMTestNet,
-  "0x22BA": QTUMRegTest,
+  "0x115C": HTMLCOINMainnet,
+  "0x115D": HTMLCOINTestNet,
+  "0x115E": HTMLCOINRegTest,
 };
 
 export default {
@@ -63,7 +63,7 @@ export default {
   props: {
     msg: String,
     connected: Boolean,
-    qtumConnected: Boolean,
+    htmlcoinConnected: Boolean,
   },
   computed: {
     web3Detected: function() {
@@ -72,44 +72,44 @@ export default {
   },
   methods: {
     getChainId: function() {
-      return window.qtum.chainId;
+      return window.htmlcoin.chainId;
     },
-    isOnQtumChainId: function() {
+    isOnHtmlcoinChainId: function() {
       let chainId = this.getChainId();
-      return chainId == QTUMMainnet.chainId || chainId == QTUMTestNet.chainId;
+      return chainId == HTMLCOINMainnet.chainId || chainId == HTMLCOINTestNet.chainId;
     },
     connectToWeb3: function(){
       if (this.connected) {
         return;
       }
       let self = this;
-      window.qtum.request({ method: 'eth_requestAccounts' })
+      window.htmlcoin.request({ method: 'eth_requestAccounts' })
         .then(() => {
           console.log("Emitting web3Connected event");
-          let qtumConnected = self.isOnQtumChainId();
-          let currentlyQtumConnected = self.qtumConnected;
+          let htmlcoinConnected = self.isOnHtmlcoinChainId();
+          let currentlyHtmlcoinConnected = self.htmlcoinConnected;
           self.$emit("web3Connected", true);
-          if (currentlyQtumConnected != qtumConnected) {
-            console.log("ChainID matches QTUM, not prompting to add network to web3, already connected.");
-            self.$emit("qtumConnected", true);
+          if (currentlyHtmlcoinConnected != htmlcoinConnected) {
+            console.log("ChainID matches HTMLCOIN, not prompting to add network to web3, already connected.");
+            self.$emit("htmlcoinConnected", true);
           }
         })
         .catch((e) => {
           console.log("Connecting to web3 failed", arguments, e);
         })
     },
-    connectToQtum: function() {
-      console.log("Connecting to Qtum, current chainID is", this.getChainId());
+    connectToHtmlcoin: function() {
+      console.log("Connecting to Htmlcoin, current chainID is", this.getChainId());
 
       let self = this;
-      let qtumConfig = config[this.getChainId()] || QTUMTestNet;
-      console.log("Adding network to Metamask", qtumConfig);
-      window.qtum.request({
+      let htmlcoinConfig = config[this.getChainId()] || HTMLCOINTestNet;
+      console.log("Adding network to Metamask", htmlcoinConfig);
+      window.htmlcoin.request({
         method: "wallet_addEthereumChain",
-        params: [qtumConfig],
+        params: [htmlcoinConfig],
       })
         .then(() => {
-          self.$emit("qtumConnected", true);
+          self.$emit("htmlcoinConnected", true);
         })
         .catch(() => {
           console.log("Adding network failed", arguments);
