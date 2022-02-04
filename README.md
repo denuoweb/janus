@@ -1,8 +1,8 @@
 [![Github Build Status](https://github.com/qtumproject/janus/workflows/Openzeppelin/badge.svg)](https://github.com/qtumproject/janus/actions)
 [![Github Build Status](https://github.com/qtumproject/janus/workflows/Unit%20tests/badge.svg)](https://github.com/qtumproject/janus/actions)
 
-# Qtum adapter to Ethereum JSON RPC
-Janus is a web3 proxy adapter that can be used as a web3 provider to interact with Qtum. It supports HTTP(s) and websockets and the current version enables self hosting of keys.
+# Htmlcoin adapter to Ethereum JSON RPC
+Janus is a web3 proxy adapter that can be used as a web3 provider to interact with Htmlcoin. It supports HTTP(s) and websockets and the current version enables self hosting of keys.
 
 # Table of Contents
 
@@ -38,10 +38,10 @@ Janus is a web3 proxy adapter that can be used as a web3 provider to interact wi
 $ sudo apt install make git golang docker-compose
 # Configure GOPATH if not configured
 $ export GOPATH=`go env GOPATH`
-$ mkdir -p $GOPATH/src/github.com/qtumproject && \
-  cd $GOPATH/src/github.com/qtumproject && \
-  git clone https://github.com/qtumproject/janus
-$ cd $GOPATH/src/github.com/qtumproject/janus
+$ mkdir -p $GOPATH/src/github.com/htmlcoin && \
+  cd $GOPATH/src/github.com/htmlcoin && \
+  git clone https://github.com/htmlcoin/janus
+$ cd $GOPATH/src/github.com/htmlcoin/janus
 # Generate self-signed SSL cert (optional)
 # If you do this step, Janus will respond in SSL
 # otherwise, Janus will respond unencrypted
@@ -53,22 +53,22 @@ $ make quick-start-mainnet
 ```
 This will build the docker image for the local version of Janus as well as spin up two containers:
 
--   One named `janus` running on port 23889
+-   One named `janus` running on port 24889
     
--   Another one named `qtum` running on port 3889
+-   Another one named `htmlcoin` running on port 4889
     
 
-`make quick-start` will also fund the tests accounts with QTUM in order for you to start testing and developing locally. Additionally, if you need or want to make changes and or additions to Janus, but don't want to go through the hassle of rebuilding the container, you can run the following command at the project root level:
+`make quick-start` will also fund the tests accounts with HTMLCOIN in order for you to start testing and developing locally. Additionally, if you need or want to make changes and or additions to Janus, but don't want to go through the hassle of rebuilding the container, you can run the following command at the project root level:
 ```
 $ make run-janus
 # For https
 $ make docker-configure-https && make run-janus-https
 ```
-Which will run the most current local version of Janus on port 23888, but without rebuilding the image or the local docker container.
+Which will run the most current local version of Janus on port 24888, but without rebuilding the image or the local docker container.
 
-Note that Janus will use the hex address for the test base58 Qtum addresses that belong the the local qtum node, for example:
-  - qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW (hex 0x7926223070547d2d15b2ef5e7383e541c338ffe9 )
-  - qLn9vqbr2Gx3TsVR9QyTVB5mrMoh4x43Uf (hex 0x2352be3db3177f0a07efbe6da5857615b8c9901d )
+Note that Janus will use the hex address for the test base58 Htmlcoin addresses that belong the the local htmlcoin node, for example:
+  - hUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW (hex 0x7926223070547d2d15b2ef5e7383e541c338ffe9 )
+  - hLn9vqbr2Gx3TsVR9QyTVB5mrMoh4x43Uf (hex 0x2352be3db3177f0a07efbe6da5857615b8c9901d )
 
 ### SSL
 SSL keys and certificates go inside the https folder (mounted at `/https` in the container) and use `--https-key` and `--https-cert` parameters. If the specified files do not exist, it will fall back to http.
@@ -88,7 +88,7 @@ module.exports = {
   networks: {
     janus: {
       host: "127.0.0.1",
-      port: 23889,
+      port: 24889,
       network_id: "*",
       gasPrice: "0x64"
     },
@@ -103,7 +103,7 @@ module.exports = {
 Getting Janus to work with Metamask requires two things
 - [Configuring Metamask to point to Janus](metamask)
 - Locally signing transactions with a Metamask fork
-  - [(Alpha) QTUM Metamask fork](https://github.com/earlgreytech/metamask-extension/releases)
+  - [(Alpha) HTMLCOIN Metamask fork](https://github.com/htmlcoin/metamask-extension/releases)
 
 ## Supported ETH methods
 
@@ -151,11 +151,11 @@ Getting Janus to work with Metamask requires two things
 
 ## Janus methods
 
--   qtum_getUTXOs
+-   htmlcoin_getUTXOs
 
 ## Health checks
 
-There are two health check endpoints, `GET /live` and `GET /ready` they return 200 or 503 depending on health (if they can connect to qtumd)
+There are two health check endpoints, `GET /live` and `GET /ready` they return 200 or 503 depending on health (if they can connect to htmlcoind)
 
 ## Deploying and Interacting with a contract using RPC calls
 
@@ -201,7 +201,7 @@ Binary:
 ```
 $ curl --header 'Content-Type: application/json' --data \
      '{"id":"10","jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"0x7926223070547d2d15b2ef5e7383e541c338ffe9","gas":"0x6691b7","gasPrice":"0x64","data":"0x608060405234801561001057600080fd5b506040516020806100f2833981016040525160005560bf806100336000396000f30060806040526004361060485763ffffffff7c010000000000000000000000000000000000000000000000000000000060003504166360fe47b18114604d5780636d4ce63c146064575b600080fd5b348015605857600080fd5b5060626004356088565b005b348015606f57600080fd5b506076608d565b60408051918252519081900360200190f35b600055565b600054905600a165627a7a7230582049a087087e1fc6da0b68ca259d45a2e369efcbb50e93f9b7fa3e198de6402b8100290000000000000000000000000000000000000000000000000000000000000001"}]}' \
-     'http://localhost:23889'
+     'http://localhost:24889'
 
 {
   "jsonrpc": "2.0",
@@ -215,7 +215,7 @@ $ curl --header 'Content-Type: application/json' --data \
 ```
 $ curl --header 'Content-Type: application/json' --data \
      '{"id":"10","jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0x6da39dc909debf70a536bbc108e2218fd7bce23305ddc00284075df5dfccc21b"]}' \
-     'localhost:23889'
+     'localhost:24889'
 
 {
   "jsonrpc":"2.0",
@@ -241,7 +241,7 @@ $ curl --header 'Content-Type: application/json' --data \
 ```
 $ curl --header 'Content-Type: application/json' --data \
      '{"id":"10","jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0x6da39dc909debf70a536bbc108e2218fd7bce23305ddc00284075df5dfccc21b"]}' \
-     'localhost:23889'
+     'localhost:24889'
 
 {
   "jsonrpc": "2.0",
@@ -269,7 +269,7 @@ the ABI code of set method with param '["2"]' is `60fe47b10000000000000000000000
 ```
 $ curl --header 'Content-Type: application/json' --data \
      '{"id":"10","jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"0x7926223070547d2d15b2ef5e7383e541c338ffe9","gas":"0x6691b7","gasPrice":"0x64","to":"0x1286595f8683ae074bc026cf0e587177b36842e2","data":"60fe47b10000000000000000000000000000000000000000000000000000000000000002"}]}' \
-     'localhost:23889'
+     'localhost:24889'
 
 {
   "jsonrpc": "2.0",
@@ -285,7 +285,7 @@ get method's ABI code is `6d4ce63c`
 ```
 $ curl --header 'Content-Type: application/json' --data \
      '{"id":"10","jsonrpc":"2.0","method":"eth_call","params":[{"from":"0x7926223070547d2d15b2ef5e7383e541c338ffe9","gas":"0x6691b7","gasPrice":"0x64","to":"0x1286595f8683ae074bc026cf0e587177b36842e2","data":"6d4ce63c"},"latest"]}' \
-     'localhost:23889'
+     'localhost:24889'
 
 {
   "jsonrpc": "2.0",
@@ -296,10 +296,10 @@ $ curl --header 'Content-Type: application/json' --data \
 
 ## Known issues
 - Sending coins with the creation of a contract will cause a loss of coins
-  - This is a Qtum intentional deisgn decision and will not change
-- On a transfer of Qtum to a Qtum address, there is no receipt generated for such a transfer
-- When converting from WEI -> QTUM, precision is lost due to QTUM's smallest demonination being 1 satoshi.
-  - 1 satoshi = 0.00000001 QTUM = 10000000000 wei
-- QTUM's minimum gas price is 40 satoshi
+  - This is a Htmlcoin intentional deisgn decision and will not change
+- On a transfer of Htmlcoin to a Htmlcoin address, there is no receipt generated for such a transfer
+- When converting from WEI -> Htmlcoin, precision is lost due to Htmlcoin's smallest demonination being 1 satoshi.
+  - 1 satoshi = 0.00000001 Htmlcoin = 10000000000 wei
+- Htmlcoin's minimum gas price is 40 satoshi
   - When specifying a gas price in wei lower than that, the minimum gas price will be used (40 satoshi)
 - Only 'logs' eth_subscribe type is supported at the moment
