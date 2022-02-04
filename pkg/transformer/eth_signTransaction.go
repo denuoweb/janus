@@ -5,15 +5,15 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 	"github.com/shopspring/decimal"
 )
 
 // ProxyETHSendTransaction implements ETHProxy
 type ProxyETHSignTransaction struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHSignTransaction) Method() string {
@@ -43,27 +43,27 @@ func (p *ProxyETHSignTransaction) Request(rawreq *eth.JSONRPCRequest, c echo.Con
 	return nil, eth.NewInvalidParamsError("Unknown operation")
 }
 
-func (p *ProxyETHSignTransaction) getRequiredUtxos(from string, neededAmount decimal.Decimal) ([]qtum.RawTxInputs, decimal.Decimal, error) {
-	//convert address to qtum address
+func (p *ProxyETHSignTransaction) getRequiredUtxos(from string, neededAmount decimal.Decimal) ([]htmlcoin.RawTxInputs, decimal.Decimal, error) {
+	//convert address to htmlcoin address
 	addr := utils.RemoveHexPrefix(from)
 	base58Addr, err := p.FromHexAddress(addr)
 	if err != nil {
 		return nil, decimal.Decimal{}, err
 	}
 	// need to get utxos with txid and vouts. In order to do this we get a list of unspent transactions and begin summing them up
-	var getaddressutxos *qtum.GetAddressUTXOsRequest = &qtum.GetAddressUTXOsRequest{Addresses: []string{base58Addr}}
-	qtumresp, err := p.GetAddressUTXOs(getaddressutxos)
+	var getaddressutxos *htmlcoin.GetAddressUTXOsRequest = &htmlcoin.GetAddressUTXOsRequest{Addresses: []string{base58Addr}}
+	htmlcoinresp, err := p.GetAddressUTXOs(getaddressutxos)
 	if err != nil {
 		return nil, decimal.Decimal{}, err
 	}
 
 	//Convert minSumAmount to Satoshis
-	minimumSum := convertFromQtumToSatoshis(neededAmount)
-	var utxos []qtum.RawTxInputs
+	minimumSum := convertFromHtmlcoinToSatoshis(neededAmount)
+	var utxos []htmlcoin.RawTxInputs
 	var minUTXOsSum decimal.Decimal
-	for _, utxo := range *qtumresp {
+	for _, utxo := range *htmlcoinresp {
 		minUTXOsSum = minUTXOsSum.Add(utxo.Satoshis)
-		utxos = append(utxos, qtum.RawTxInputs{TxID: utxo.TXID, Vout: utxo.OutputIndex})
+		utxos = append(utxos, htmlcoin.RawTxInputs{TxID: utxo.TXID, Vout: utxo.OutputIndex})
 		if minUTXOsSum.GreaterThanOrEqual(minimumSum) {
 			return utxos, minUTXOsSum, nil
 		}
@@ -84,7 +84,7 @@ func calculateNeededAmount(value, gasLimit, gasPrice decimal.Decimal) decimal.De
 }
 
 func (p *ProxyETHSignTransaction) requestSendToContract(ethtx *eth.SendTransactionRequest) (string, eth.JSONRPCError) {
-	gasLimit, gasPrice, err := EthGasToQtum(ethtx)
+	gasLimit, gasPrice, err := EthGasToHtmlcoin(ethtx)
 	if err != nil {
 		return "", eth.NewInvalidParamsError(err.Error())
 	}
@@ -92,7 +92,7 @@ func (p *ProxyETHSignTransaction) requestSendToContract(ethtx *eth.SendTransacti
 	amount := decimal.NewFromFloat(0.0)
 	if ethtx.Value != "" {
 		var err error
-		amount, err = EthValueToQtumAmount(ethtx.Value, ZeroSatoshi)
+		amount, err = EthValueToHtmlcoinAmount(ethtx.Value, ZeroSatoshi)
 		if err != nil {
 			return "", eth.NewInvalidParamsError(err.Error())
 		}
@@ -114,7 +114,7 @@ func (p *ProxyETHSignTransaction) requestSendToContract(ethtx *eth.SendTransacti
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	contractInteractTx := &qtum.SendToContractRawRequest{
+	contractInteractTx := &htmlcoin.SendToContractRawRequest{
 		ContractAddress: utils.RemoveHexPrefix(ethtx.To),
 		Datahex:         utils.RemoveHexPrefix(ethtx.Data),
 		Amount:          amount,
@@ -132,19 +132,19 @@ func (p *ProxyETHSignTransaction) requestSendToContract(ethtx *eth.SendTransacti
 
 	fromAddr := utils.RemoveHexPrefix(ethtx.From)
 
-	acc := p.Qtum.Accounts.FindByHexAddress(strings.ToLower(fromAddr))
+	acc := p.Htmlcoin.Accounts.FindByHexAddress(strings.ToLower(fromAddr))
 	if acc == nil {
 		return "", eth.NewInvalidParamsError(fmt.Sprintf("No such account: %s", fromAddr))
 	}
 
-	rawtxreq := []interface{}{inputs, []interface{}{map[string]*qtum.SendToContractRawRequest{"contract": contractInteractTx}, map[string]decimal.Decimal{contractInteractTx.SenderAddress: change}}}
+	rawtxreq := []interface{}{inputs, []interface{}{map[string]*htmlcoin.SendToContractRawRequest{"contract": contractInteractTx}, map[string]decimal.Decimal{contractInteractTx.SenderAddress: change}}}
 	var rawTx string
-	if err := p.Qtum.Request(qtum.MethodCreateRawTx, rawtxreq, &rawTx); err != nil {
+	if err := p.Htmlcoin.Request(htmlcoin.MethodCreateRawTx, rawtxreq, &rawTx); err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	var resp *qtum.SignRawTxResponse
-	if err := p.Qtum.Request(qtum.MethodSignRawTx, []interface{}{rawTx}, &resp); err != nil {
+	var resp *htmlcoin.SignRawTxResponse
+	if err := p.Htmlcoin.Request(htmlcoin.MethodSignRawTx, []interface{}{rawTx}, &resp); err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 	if !resp.Complete {
@@ -154,24 +154,24 @@ func (p *ProxyETHSignTransaction) requestSendToContract(ethtx *eth.SendTransacti
 }
 
 func (p *ProxyETHSignTransaction) requestSendToAddress(req *eth.SendTransactionRequest) (string, eth.JSONRPCError) {
-	getQtumWalletAddress := func(addr string) (string, error) {
+	getHtmlcoinWalletAddress := func(addr string) (string, error) {
 		if utils.IsEthHexAddress(addr) {
 			return p.FromHexAddress(utils.RemoveHexPrefix(addr))
 		}
 		return addr, nil
 	}
 
-	to, err := getQtumWalletAddress(req.To)
+	to, err := getHtmlcoinWalletAddress(req.To)
 	if err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	from, err := getQtumWalletAddress(req.From)
+	from, err := getHtmlcoinWalletAddress(req.From)
 	if err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	amount, err := EthValueToQtumAmount(req.Value, ZeroSatoshi)
+	amount, err := EthValueToHtmlcoinAmount(req.Value, ZeroSatoshi)
 	if err != nil {
 		return "", eth.NewInvalidParamsError(err.Error())
 	}
@@ -189,13 +189,13 @@ func (p *ProxyETHSignTransaction) requestSendToAddress(req *eth.SendTransactionR
 	var addressValMap = map[string]decimal.Decimal{to: amount, from: change}
 	rawtxreq := []interface{}{inputs, addressValMap}
 	var rawTx string
-	if err := p.Qtum.Request(qtum.MethodCreateRawTx, rawtxreq, &rawTx); err != nil {
+	if err := p.Htmlcoin.Request(htmlcoin.MethodCreateRawTx, rawtxreq, &rawTx); err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	var resp *qtum.SignRawTxResponse
+	var resp *htmlcoin.SignRawTxResponse
 	signrawtxreq := []interface{}{rawTx}
-	if err := p.Qtum.Request(qtum.MethodSignRawTx, signrawtxreq, &resp); err != nil {
+	if err := p.Htmlcoin.Request(htmlcoin.MethodSignRawTx, signrawtxreq, &resp); err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 	if !resp.Complete {
@@ -205,7 +205,7 @@ func (p *ProxyETHSignTransaction) requestSendToAddress(req *eth.SendTransactionR
 }
 
 func (p *ProxyETHSignTransaction) requestCreateContract(req *eth.SendTransactionRequest) (string, eth.JSONRPCError) {
-	gasLimit, gasPrice, err := EthGasToQtum(req)
+	gasLimit, gasPrice, err := EthGasToHtmlcoin(req)
 	if err != nil {
 		return "", eth.NewInvalidParamsError(err.Error())
 	}
@@ -218,7 +218,7 @@ func (p *ProxyETHSignTransaction) requestCreateContract(req *eth.SendTransaction
 		}
 	}
 
-	contractDeploymentTx := &qtum.CreateContractRawRequest{
+	contractDeploymentTx := &htmlcoin.CreateContractRawRequest{
 		ByteCode:      utils.RemoveHexPrefix(req.Data),
 		GasLimit:      gasLimit,
 		GasPrice:      gasPrice,
@@ -241,15 +241,15 @@ func (p *ProxyETHSignTransaction) requestCreateContract(req *eth.SendTransaction
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	rawtxreq := []interface{}{inputs, []interface{}{map[string]*qtum.CreateContractRawRequest{"contract": contractDeploymentTx}, map[string]decimal.Decimal{from: change}}}
+	rawtxreq := []interface{}{inputs, []interface{}{map[string]*htmlcoin.CreateContractRawRequest{"contract": contractDeploymentTx}, map[string]decimal.Decimal{from: change}}}
 	var rawTx string
-	if err := p.Qtum.Request(qtum.MethodCreateRawTx, rawtxreq, &rawTx); err != nil {
+	if err := p.Htmlcoin.Request(htmlcoin.MethodCreateRawTx, rawtxreq, &rawTx); err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 
-	var resp *qtum.SignRawTxResponse
+	var resp *htmlcoin.SignRawTxResponse
 	signrawtxreq := []interface{}{rawTx}
-	if err := p.Qtum.Request(qtum.MethodSignRawTx, signrawtxreq, &resp); err != nil {
+	if err := p.Htmlcoin.Request(htmlcoin.MethodSignRawTx, signrawtxreq, &resp); err != nil {
 		return "", eth.NewCallbackError(err.Error())
 	}
 	if !resp.Complete {
