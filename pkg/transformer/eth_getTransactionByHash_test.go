@@ -5,14 +5,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 	"github.com/shopspring/decimal"
 )
 
 /*
 Test is not quite finished:
-//Insert some output in []*qtum.DecodedRawTransactionOutV() to force test cover more code
+//Insert some output in []*htmlcoin.DecodedRawTransactionOutV() to force test cover more code
 */
 func TestGetTransactionByHashRequest(t *testing.T) {
 	//preparing request
@@ -22,12 +22,12 @@ func TestGetTransactionByHashRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 
 	internal.SetupGetBlockByHashResponses(t, mockedClientDoer)
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetTransactionByHash{qtumClient}
+	proxyEth := ProxyETHGetTransactionByHash{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
@@ -52,12 +52,12 @@ func TestGetTransactionByHashRequestWithContractVout(t *testing.T) {
 		t.Fatal(err)
 	}
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 
 	internal.SetupGetBlockByHashResponsesWithVouts(
 		t,
 		// TODO: Clean this up, refactor
-		[]*qtum.DecodedRawTransactionOutV{
+		[]*htmlcoin.DecodedRawTransactionOutV{
 			{
 				Value: decimal.Zero,
 				N:     0,
@@ -77,7 +77,7 @@ func TestGetTransactionByHashRequestWithContractVout(t *testing.T) {
 	)
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetTransactionByHash{qtumClient}
+	proxyEth := ProxyETHGetTransactionByHash{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
@@ -95,7 +95,7 @@ func TestGetTransactionByHashRequestWithContractVout(t *testing.T) {
 }
 
 /*
-// TODO: Removing this unit test as the transformer computes the "Amount" value (how much QTUM was transferred out) from the MethodDecodeRawTransaction response
+// TODO: Removing this unit test as the transformer computes the "Amount" value (how much HTMLCOIN was transferred out) from the MethodDecodeRawTransaction response
 // and the way that the balance is calculated cannot return a precision overflow error
 func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 	//preparing request
@@ -105,10 +105,10 @@ func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 		t.Fatal(err)
 	}
 	mockedClientDoer := newDoerMappedMock()
-	qtumClient, err := createMockedClient(mockedClientDoer)
+	htmlcoinClient, err := createMockedClient(mockedClientDoer)
 
 	//preparing answer to "getblockhash"
-	getTransactionResponse := qtum.GetTransactionResponse{
+	getTransactionResponse := htmlcoin.GetTransactionResponse{
 		Amount:            decimal.NewFromFloat(0.20689141234),
 		Fee:               decimal.NewFromFloat(-0.2012),
 		Confirmations:     2,
@@ -119,7 +119,7 @@ func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 		Time:              1533092879,
 		ReceivedAt:        1533092879,
 		Bip125Replaceable: "no",
-		Details: []*qtum.TransactionDetail{{Account: "",
+		Details: []*htmlcoin.TransactionDetail{{Account: "",
 			Category:  "send",
 			Amount:    decimal.NewFromInt(0),
 			Vout:      0,
@@ -127,19 +127,19 @@ func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 			Abandoned: false}},
 		Hex: "020000000159c0514feea50f915854d9ec45bc6458bb14419c78b17e7be3f7fd5f563475b5010000006a473044022072d64a1f4ea2d54b7b05050fc853ab192c91cc5ca17e23007867f92f2ab59d9202202b8c9ab9348c8edbb3b98b1788382c8f37642ec9bd6a4429817ab79927319200012103520b1500a400483f19b93c4cb277a2f29693ea9d6739daaf6ae6e971d29e3140feffffff02000000000000000063010403400d0301644440c10f190000000000000000000000006b22910b1e302cf74803ffd1691c2ecb858d3712000000000000000000000000000000000000000000000000000000000000000a14be528c8378ff082e4ba43cb1baa363dbf3f577bfc260e66272970100001976a9146b22910b1e302cf74803ffd1691c2ecb858d371288acb00f0000",
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodGetTransaction, getTransactionResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodGetTransaction, getTransactionResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	decodedRawTransactionResponse := qtum.DecodedRawTransactionResponse{
+	decodedRawTransactionResponse := htmlcoin.DecodedRawTransactionResponse{
 		ID:       "11e97fa5877c5df349934bafc02da6218038a427e8ed081f048626fa6eb523f5",
 		Hash:     "d0fe0caa1b798c36da37e9118a06a7d151632d670b82d1c7dc3985577a71880f",
 		Size:     552,
 		Vsize:    552,
 		Version:  2,
 		Locktime: 608,
-		Vins: []*qtum.DecodedRawTransactionInV{{
+		Vins: []*htmlcoin.DecodedRawTransactionInV{{
 			TxID: "7f5350dc474f2953a3f30282c1afcad2fb61cdcea5bd949c808ecc6f64ce1503",
 			Vout: 0,
 			ScriptSig: struct {
@@ -150,14 +150,14 @@ func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 				Hex: "483045022100af4de764705dbd3c0c116d73fe0a2b78c3fab6822096ba2907cfdae2bb28784102206304340a6d260b364ef86d6b19f2b75c5e55b89fb2f93ea72c05e09ee037f60b012103520b1500a400483f19b93c4cb277a2f29693ea9d6739daaf6ae6e971d29e3140",
 			},
 		}},
-		Vouts: []*qtum.DecodedRawTransactionOutV{},
+		Vouts: []*htmlcoin.DecodedRawTransactionOutV{},
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(3, qtum.MethodDecodeRawTransaction, decodedRawTransactionResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(3, htmlcoin.MethodDecodeRawTransaction, decodedRawTransactionResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	getBlockResponse := qtum.GetBlockResponse{
+	getBlockResponse := htmlcoin.GetBlockResponse{
 		Hash:              "bba11e1bacc69ba535d478cf1f2e542da3735a517b0b8eebaf7e6bb25eeb48c5",
 		Confirmations:     1,
 		Strippedsize:      584,
@@ -184,14 +184,14 @@ func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 		Nextblockhash: "d7758774cfdd6bab7774aa891ae035f1dc5a2ff44240784b5e7bdfd43a7a6ec1",
 		Signature:     "3045022100a6ab6c2b14b1f73e734f1a61d4d22385748e48836492723a6ab37cdf38525aba022014a51ecb9e51f5a7a851641683541fec6f8f20205d0db49e50b2a4e5daed69d2",
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(4, qtum.MethodGetBlock, getBlockResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(4, htmlcoin.MethodGetBlock, getBlockResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// TODO: Get an actual response for this (only addresses are used in this test though)
-	getRawTransactionResponse := qtum.GetRawTransactionResponse{
-		Vouts: []qtum.RawTransactionVout{
+	getRawTransactionResponse := htmlcoin.GetRawTransactionResponse{
+		Vouts: []htmlcoin.RawTransactionVout{
 			{
 				Details: struct {
 					Addresses []string `json:"addresses"`
@@ -207,13 +207,13 @@ func TestGetTransactionByHashRequest_PrecisionOverflow(t *testing.T) {
 			},
 		},
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(4, qtum.MethodGetRawTransaction, &getRawTransactionResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(4, htmlcoin.MethodGetRawTransaction, &getRawTransactionResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetTransactionByHash{qtumClient}
+	proxyEth := ProxyETHGetTransactionByHash{htmlcoinClient}
 	_, err = proxyEth.Request(request)
 
 	want := string("decimal.BigInt() was not a success")
