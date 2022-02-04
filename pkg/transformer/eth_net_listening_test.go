@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestNetListeningInactive(t *testing.T) {
@@ -25,18 +25,18 @@ func testNetListeningRequest(t *testing.T, active bool) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	networkInfoResponse := qtum.NetworkInfoResponse{NetworkActive: active}
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodGetNetworkInfo, networkInfoResponse)
+	networkInfoResponse := htmlcoin.NetworkInfoResponse{NetworkActive: active}
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodGetNetworkInfo, networkInfoResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	proxyEth := ProxyNetListening{qtumClient}
+	proxyEth := ProxyNetListening{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
