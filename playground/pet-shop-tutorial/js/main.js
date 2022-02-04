@@ -1,7 +1,7 @@
 import "core-js/stable"
 import "regenerator-runtime/runtime"
 import {providers, Contract, ethers} from "ethers"
-import {QtumProvider, QtumWallet} from "qtum-ethers-wrapper"
+import {HtmlcoinProvider, HtmlcoinWallet} from "htmlcoin-ethers-wrapper"
 import {utils} from "web3"
 var $ = require( "jquery" );
 import AdoptionArtifact from './Adoption.json'
@@ -9,56 +9,56 @@ import Pets from './pets.json'
 window.$ = $;
 window.jQuery = $;
 
-let QTUMMainnet = {
-  chainId: '0x22B8', // 8888
-  chainName: 'QTUM Mainnet',
-  rpcUrls: ['https://janus.qiswap.com/api/'],
-  blockExplorerUrls: ['https://qtum.info/'],
+let HTMLCOINMainnet = {
+  chainId: '0x115C', // 4444
+  chainName: 'HTMLCOIN Mainnet',
+  rpcUrls: ['https://janus.htmlcoin.com/api/'],
+  blockExplorerUrls: ['https://info.htmlcoin.com/'],
   iconUrls: [
-    'https://qtum.info/images/metamask_icon.svg',
-    'https://qtum.info/images/metamask_icon.png',
+    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/images/metamask_icon.svg',
   ],
   nativeCurrency: {
     decimals: 18,
-    symbol: 'QTUM',
+    symbol: 'HTML',
   },
 };
-let QTUMTestNet = {
-  chainId: '0x22B9', // 8889
-  chainName: 'QTUM Testnet',
-  rpcUrls: ['https://testnet-janus.qiswap.com/api/'],
-  blockExplorerUrls: ['https://testnet.qtum.info/'],
+let HTMLCOINTestNet = {
+  chainId: '0x115D', // 4445
+  chainName: 'HTMLCOIN Testnet',
+  rpcUrls: ['https://testnet-janus.htmlcoin.com/api/'],
+  blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://qtum.info/images/metamask_icon.svg',
-    'https://qtum.info/images/metamask_icon.png',
+    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
     decimals: 18,
-    symbol: 'QTUM',
+    symbol: 'HTML',
   },
 };
-let QTUMRegTest = {
-  chainId: '0x22BA', // 8890
-  chainName: 'QTUM Regtest',
-  rpcUrls: ['https://localhost:23889'],
-  // blockExplorerUrls: ['https://testnet.qtum.info/'],
+let HTMLCOINRegTest = {
+  chainId: '0x115E', // 4446
+  chainName: 'HTMLCOIN Regtest',
+  rpcUrls: ['https://localhost:24889'],
+  // blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://qtum.info/images/metamask_icon.svg',
-    'https://qtum.info/images/metamask_icon.png',
+    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/images/metamask_icon.png',
   ],
   nativeCurrency: {
     decimals: 18,
-    symbol: 'QTUM',
+    symbol: 'HTML',
   },
 };
 let config = {
-  "0x22B8": QTUMMainnet,
-  "0x22B9": QTUMTestNet,
-  "0x22BA": QTUMRegTest,
+  "0x115C": HTMLCOINMainnet,
+  "0x115D": HTMLCOINTestNet,
+  "0x115E": HTMLCOINRegTest,
 };
-config[QTUMMainnet.chainId] = QTUMMainnet;
-config[QTUMTestNet.chainId] = QTUMTestNet;
-config[QTUMRegTest.chainId] = QTUMRegTest;
+config[HTMLCOINMainnet.chainId] = HTMLCOINMainnet;
+config[HTMLCOINTestNet.chainId] = HTMLCOINTestNet;
+config[HTMLCOINRegTest.chainId] = HTMLCOINRegTest;
 
 const metamask = true;
 window.App = {
@@ -90,54 +90,54 @@ window.App = {
   },
 
   getChainId: function() {
-    return (window.qtum || {}).chainId || 8890;
+    return (window.htmlcoin || {}).chainId || 4444;
   },
-  isOnQtumChainId: function() {
+  isOnHtmlcoinChainId: function() {
     let chainId = this.getChainId();
-    return chainId == QTUMMainnet.chainId || chainId == QTUMTestNet.chainId;
+    return chainId == HTMLCOINMainnet.chainId || chainId == HTMLCOINTestNet.chainId;
   },
 
   initEthers: function() {
-    let qtumRpcProvider = new QtumProvider(QTUMTestNet.rpcUrls[0]);
+    let htmlcoinRpcProvider = new HtmlcoinProvider(HTMLCOINTestNet.rpcUrls[0]);
     let privKey = "1dd19e1648a23aaf2b3d040454d2569bd7f2cd816cf1b9b430682941a98151df";
     // WIF format
     // let privKey = "cMbgxCJrTYUqgcmiC1berh5DFrtY1KeU4PXZ6NZxgenniF1mXCRk";
-    let qtumWallet = new QtumWallet(privKey, qtumRpcProvider);
+    let htmlcoinWallet = new HtmlcoinWallet(privKey, htmlcoinRpcProvider);
     
-    window.qtumWallet = qtumWallet;
-    App.account = qtumWallet.address
-    App.web3Provider = qtumWallet;
+    window.htmlcoinWallet = htmlcoinWallet;
+    App.account = htmlcoinWallet.address
+    App.web3Provider = htmlcoinWallet;
     return App.initContract();
   },
 
   initWeb3: function() {
     let self = this;
-    let qtumConfig = config[this.getChainId()] || QTUMRegTest;
-    console.log("Adding network to Metamask", qtumConfig);
-    window.qtum.request({
+    let htmlcoinConfig = config[this.getChainId()] || HTMLCOINRegTest;
+    console.log("Adding network to Metamask", htmlcoinConfig);
+    window.htmlcoin.request({
       method: "wallet_addEthereumChain",
-      params: [qtumConfig],
+      params: [htmlcoinConfig],
     })
       .then(() => {
-        console.log("Successfully connected to qtum")
-        window.qtum.request({ method: 'eth_requestAccounts' })
+        console.log("Successfully connected to htmlcoin")
+        window.htmlcoin.request({ method: 'eth_requestAccounts' })
           .then((accounts) => {
             console.log("Successfully logged into metamask", accounts);
-            let qtumConnected = self.isOnQtumChainId();
-            let currentlyQtumConnected = self.qtumConnected;
+            let htmlcoinConnected = self.isOnHtmlcoinChainId();
+            let currentlyHtmlcoinConnected = self.htmlcoinConnected;
             if (accounts && accounts.length > 0) {
               App.account = accounts[0];
             }
-            if (currentlyQtumConnected != qtumConnected) {
-              console.log("ChainID matches QTUM, not prompting to add network to web3, already connected.");
+            if (currentlyHtmlcoinConnected != htmlcoinConnected) {
+              console.log("ChainID matches HTMLCOIN, not prompting to add network to web3, already connected.");
             }
-            let qtumRpcProvider = new QtumProvider(QTUMTestNet.rpcUrls[0]);
-            let qtumWallet = new QtumWallet("1dd19e1648a23aaf2b3d040454d2569bd7f2cd816cf1b9b430682941a98151df", qtumRpcProvider);
-            App.account = qtumWallet.address
+            let htmlcoinRpcProvider = new htmlcoinProvider(HTMLCOINTestNet.rpcUrls[0]);
+            let htmlcoinWallet = new HtmlcoinWallet("1dd19e1648a23aaf2b3d040454d2569bd7f2cd816cf1b9b430682941a98151df", htmlcoinRpcProvider);
+            App.account = htmlcoinWallet.address
             if (!metamask) {
-              App.web3Provider = qtumWallet;
+              App.web3Provider = htmlcoinWallet;
             } else {
-              App.web3Provider = new providers.Web3Provider(window.qtum);
+              App.web3Provider = new providers.Web3Provider(window.htmlcoin);
             }
             
             return App.initContract();
