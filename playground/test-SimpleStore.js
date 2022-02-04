@@ -1,17 +1,17 @@
-// YOUR_QTUM_ACCOUNT
+// YOUR_HTMLCOIN_ACCOUNT
 const url = require('url');
 
 const rpcURL=  process.env.ETH_RPC;
-const qtumAccount  = url.parse(rpcURL).auth.split(":")[0]
+const htmlcoinAccount  = url.parse(rpcURL).auth.split(":")[0]
 
-const qtum = require("qtumjs")
-const rpc = new qtum.EthRPC(rpcURL, qtumAccount)
+const htmlcoin = require("htmlcoinjs")
+const rpc = new htmlcoin.EthRPC(rpcURL, htmlcoinAccount)
 const repoData = require("./solar.development.json")
 const {
   sender,
   ...info
 } = repoData.contracts['./contracts/SimpleStore.sol']
-const simpleStoreContract = new qtum.Contract(rpc, info)
+const simpleStoreContract = new htmlcoin.Contract(rpc, info)
 
 const opts = {gasPrice: 100}
 
