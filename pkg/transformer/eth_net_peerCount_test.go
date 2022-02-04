@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestPeerCountRequest(t *testing.T) {
@@ -30,16 +30,16 @@ func testPeerCountRequest(t *testing.T, clients int) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	getPeerInfoResponse := []qtum.GetPeerInfoResponse{}
+	getPeerInfoResponse := []htmlcoin.GetPeerInfoResponse{}
 	for i := 0; i < clients; i++ {
-		getPeerInfoResponse = append(getPeerInfoResponse, qtum.GetPeerInfoResponse{})
+		getPeerInfoResponse = append(getPeerInfoResponse, htmlcoin.GetPeerInfoResponse{})
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodGetPeerInfo, getPeerInfoResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodGetPeerInfo, getPeerInfoResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
