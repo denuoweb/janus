@@ -2,14 +2,14 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHSendRawTransaction implements ETHProxy
 type ProxyETHSendRawTransaction struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 var _ ETHProxy = (*ProxyETHSendRawTransaction)(nil)
@@ -34,21 +34,21 @@ func (p *ProxyETHSendRawTransaction) Request(req *eth.JSONRPCRequest, c echo.Con
 
 func (p *ProxyETHSendRawTransaction) request(params eth.SendRawTransactionRequest) (eth.SendRawTransactionResponse, eth.JSONRPCError) {
 	var (
-		qtumHexedRawTx = utils.RemoveHexPrefix(params[0])
-		req            = qtum.SendRawTransactionRequest([1]string{qtumHexedRawTx})
+		htmlcoinHexedRawTx = utils.RemoveHexPrefix(params[0])
+		req            = htmlcoin.SendRawTransactionRequest([1]string{htmlcoinHexedRawTx})
 	)
 
-	qtumresp, err := p.Qtum.SendRawTransaction(&req)
+	htmlcoinresp, err := p.Htmlcoin.SendRawTransaction(&req)
 	if err != nil {
-		if err == qtum.ErrVerifyAlreadyInChain {
+		if err == htmlcoin.ErrVerifyAlreadyInChain {
 			// already committed
 			// we need to send back the tx hash
-			rawTx, err := p.Qtum.DecodeRawTransaction(qtumHexedRawTx)
+			rawTx, err := p.Htmlcoin.DecodeRawTransaction(htmlcoinHexedRawTx)
 			if err != nil {
 				p.GetErrorLogger().Log("msg", "Error decoding raw transaction for duplicate raw transaction", "err", err)
 				return eth.SendRawTransactionResponse(""), eth.NewCallbackError(err.Error())
 			}
-			qtumresp = &qtum.SendRawTransactionResponse{Result: rawTx.Hash}
+			htmlcoinresp = &htmlcoin.SendRawTransactionResponse{Result: rawTx.Hash}
 		} else {
 			return eth.SendRawTransactionResponse(""), eth.NewCallbackError(err.Error())
 		}
@@ -56,7 +56,7 @@ func (p *ProxyETHSendRawTransaction) request(params eth.SendRawTransactionReques
 		p.GenerateIfPossible()
 	}
 
-	resp := *qtumresp
+	resp := *htmlcoinresp
 	ethHexedTxHash := utils.AddHexPrefix(resp.Result)
 	return eth.SendRawTransactionResponse(ethHexedTxHash), nil
 }
