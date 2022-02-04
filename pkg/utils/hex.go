@@ -42,13 +42,13 @@ func DecodeBig(input string) (*big.Int, error) {
 	return hexutil.DecodeBig(input)
 }
 
-// Converts Qtum address to an Ethereum address
-func ConvertQtumAddress(address string) (ethAddress string, _ error) {
+// Converts Htmlcoin address to an Ethereum address
+func ConvertHtmlcoinAddress(address string) (ethAddress string, _ error) {
 	if n := len(address); n < 22 {
 		return "", errors.Errorf("invalid address: length is less than 22 bytes - %d", n)
 	}
 
-	// Drop Qtum chain prefix and checksum suffix
+	// Drop Htmlcoin chain prefix and checksum suffix
 	ethAddrBytes := base58.Decode(address)[1:21]
 
 	return hex.EncodeToString(ethAddrBytes), nil
