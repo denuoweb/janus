@@ -1,4 +1,4 @@
-package qtum
+package htmlcoin
 
 import (
 	"encoding/hex"
@@ -32,21 +32,21 @@ func (a *Account) ToHexAddress() string {
 	return hex.EncodeToString(keyid)
 }
 
-var qtumMainNetParams = chaincfg.MainNetParams
-var qtumTestNetParams = chaincfg.MainNetParams
+var htmlcoinMainNetParams = chaincfg.MainNetParams
+var htmlcoinTestNetParams = chaincfg.MainNetParams
 
 func init() {
-	qtumMainNetParams.PubKeyHashAddrID = 58
-	qtumMainNetParams.ScriptHashAddrID = 50
+	htmlcoinMainNetParams.PubKeyHashAddrID = 41
+	htmlcoinMainNetParams.ScriptHashAddrID = 100
 
-	qtumTestNetParams.PubKeyHashAddrID = 120
-	qtumTestNetParams.ScriptHashAddrID = 110
+	htmlcoinTestNetParams.PubKeyHashAddrID = 100
+	htmlcoinTestNetParams.ScriptHashAddrID = 110
 }
 
 func (a *Account) ToBase58Address(isMain bool) (string, error) {
-	params := &qtumMainNetParams
+	params := &htmlcoinMainNetParams
 	if !isMain {
-		params = &qtumTestNetParams
+		params = &htmlcoinTestNetParams
 	}
 
 	addr, err := btcutil.NewAddressPubKey(a.SerializePubKey(), params)
