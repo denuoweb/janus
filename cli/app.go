@@ -11,39 +11,39 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/notifier"
-	"github.com/qtumproject/janus/pkg/params"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/server"
-	"github.com/qtumproject/janus/pkg/transformer"
+	"github.com/htmlcoin/janus/pkg/notifier"
+	"github.com/htmlcoin/janus/pkg/params"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/server"
+	"github.com/htmlcoin/janus/pkg/transformer"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	app = kingpin.New("janus", "Qtum adapter to Ethereum JSON RPC")
+	app = kingpin.New("janus", "Htmlcoin adapter to Ethereum JSON RPC")
 
 	accountsFile = app.Flag("accounts", "account private keys (in WIF) returned by eth_accounts").Envar("ACCOUNTS").File()
 
-	qtumRPC             = app.Flag("qtum-rpc", "URL of qtum RPC service").Envar("QTUM_RPC").Default("").String()
-	qtumNetwork         = app.Flag("qtum-network", "if 'regtest' (or connected to a regtest node with 'auto') Janus will generate blocks").Envar("QTUM_NETWORK").Default("auto").String()
+	htmlcoinRPC             = app.Flag("htmlcoin-rpc", "URL of htmlcoin RPC service").Envar("HTMLCOIN_RPC").Default("").String()
+	htmlcoinNetwork         = app.Flag("htmlcoin-network", "if 'regtest' (or connected to a regtest node with 'auto') Janus will generate blocks").Envar("HTMLCOIN_NETWORK").Default("auto").String()
 	generateToAddressTo = app.Flag("generateToAddressTo", "[regtest only] configure address to mine blocks to when mining new transactions in blocks").Envar("GENERATE_TO_ADDRESS").Default("").String()
 	bind                = app.Flag("bind", "network interface to bind to (e.g. 0.0.0.0) ").Default("localhost").String()
-	port                = app.Flag("port", "port to serve proxy").Default("23889").Int()
+	port                = app.Flag("port", "port to serve proxy").Default("24889").Int()
 	httpsKey            = app.Flag("https-key", "https keyfile").Default("").String()
 	httpsCert           = app.Flag("https-cert", "https certificate").Default("").String()
 	logFile             = app.Flag("log-file", "write logs to a file").Envar("LOG_FILE").Default("").String()
-	matureBlockHeight   = app.Flag("mature-block-height-override", "override how old a coinbase/coinstake needs to be to be considered mature enough for spending (QTUM uses 2000 blocks after the 32s block fork) - if this value is incorrect transactions can be rejected").Int()
+	matureBlockHeight   = app.Flag("mature-block-height-override", "override how old a coinbase/coinstake needs to be to be considered mature enough for spending (HTMLCOIN uses 500 blocks) - if this value is incorrect transactions can be rejected").Int()
 
 	devMode        = app.Flag("dev", "[Insecure] Developer mode").Envar("DEV").Default("false").Bool()
 	singleThreaded = app.Flag("singleThreaded", "[Non-production] Process RPC requests in a single thread").Envar("SINGLE_THREADED").Default("false").Bool()
 
 	ignoreUnknownTransactions = app.Flag("ignoreTransactions", "[Development] Ignore transactions inside blocks we can't fetch and return responses instead of failing").Default("false").Bool()
 	disableSnipping           = app.Flag("disableSnipping", "[Development] Disable ...snip... in logs").Default("false").Bool()
-	hideQtumdLogs             = app.Flag("hideQtumdLogs", "[Development] Hide QTUMD debug logs").Envar("HIDE_QTUMD_LOGS").Default("false").Bool()
+	hideHtmlcoindLogs             = app.Flag("hideHtmlcoindLogs", "[Development] Hide HTMLCOIND debug logs").Envar("HIDE_HTMLCOIND_LOGS").Default("false").Bool()
 )
 
-func loadAccounts(r io.Reader, l log.Logger) qtum.Accounts {
-	var accounts qtum.Accounts
+func loadAccounts(r io.Reader, l log.Logger) htmlcoin.Accounts {
+	var accounts htmlcoin.Accounts
 
 	if accountsFile != nil {
 		s := bufio.NewScanner(*accountsFile)
@@ -99,41 +99,41 @@ func action(pc *kingpin.ParseContext) error {
 		logger = level.NewFilter(logger, level.AllowWarn())
 	}
 
-	var accounts qtum.Accounts
+	var accounts htmlcoin.Accounts
 	if *accountsFile != nil {
 		accounts = loadAccounts(*accountsFile, logger)
 		(*accountsFile).Close()
 	}
 
-	isMain := *qtumNetwork == qtum.ChainMain
+	isMain := *htmlcoinNetwork == htmlcoin.ChainMain
 
-	qtumJSONRPC, err := qtum.NewClient(
+	htmlcoinJSONRPC, err := htmlcoin.NewClient(
 		isMain,
-		*qtumRPC,
-		qtum.SetDebug(*devMode),
-		qtum.SetLogWriter(logWriter),
-		qtum.SetLogger(logger),
-		qtum.SetAccounts(accounts),
-		qtum.SetGenerateToAddress(*generateToAddressTo),
-		qtum.SetIgnoreUnknownTransactions(*ignoreUnknownTransactions),
-		qtum.SetDisableSnippingQtumRpcOutput(*disableSnipping),
-		qtum.SetHideQtumdLogs(*hideQtumdLogs),
-		qtum.SetMatureBlockHeight(matureBlockHeight),
-		qtum.SetContext(context.Background()),
+		*htmlcoinRPC,
+		htmlcoin.SetDebug(*devMode),
+		htmlcoin.SetLogWriter(logWriter),
+		htmlcoin.SetLogger(logger),
+		htmlcoin.SetAccounts(accounts),
+		htmlcoin.SetGenerateToAddress(*generateToAddressTo),
+		htmlcoin.SetIgnoreUnknownTransactions(*ignoreUnknownTransactions),
+		htmlcoin.SetDisableSnippingHtmlcoinRpcOutput(*disableSnipping),
+		htmlcoin.SetHideHtmlcoindLogs(*hideHtmlcoindLogs),
+		htmlcoin.SetMatureBlockHeight(matureBlockHeight),
+		htmlcoin.SetContext(context.Background()),
 	)
 	if err != nil {
-		return errors.Wrap(err, "Failed to setup QTUM client")
+		return errors.Wrap(err, "Failed to setup HTMLCOIN client")
 	}
 
-	qtumClient, err := qtum.New(qtumJSONRPC, *qtumNetwork)
+	htmlcoinClient, err := htmlcoin.New(htmlcoinJSONRPC, *htmlcoinNetwork)
 	if err != nil {
-		return errors.Wrap(err, "Failed to setup QTUM chain")
+		return errors.Wrap(err, "Failed to setup HTMLCOIN chain")
 	}
 
-	agent := notifier.NewAgent(context.Background(), qtumClient, nil)
-	proxies := transformer.DefaultProxies(qtumClient, agent)
+	agent := notifier.NewAgent(context.Background(), htmlcoinClient, nil)
+	proxies := transformer.DefaultProxies(htmlcoinClient, agent)
 	t, err := transformer.New(
-		qtumClient,
+		htmlcoinClient,
 		proxies,
 		transformer.SetDebug(*devMode),
 		transformer.SetLogger(logger),
@@ -147,7 +147,7 @@ func action(pc *kingpin.ParseContext) error {
 	httpsCertFile := getEmptyStringIfFileDoesntExist(*httpsCert, logger)
 
 	s, err := server.New(
-		qtumClient,
+		htmlcoinClient,
 		t,
 		addr,
 		server.SetLogWriter(logWriter),
