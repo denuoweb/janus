@@ -1,4 +1,4 @@
-module github.com/qtumproject/janus
+module github.com/htmlcoin/janus
 
 go 1.12
 
