@@ -2,13 +2,13 @@ package eth
 
 import (
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 var ErrInvalidTopics = errors.New("Invalid topics")
 
 /**
-translateTopics takes in an ethReq's topics field and translates it to a it's equivalent QtumReq
+translateTopics takes in an ethReq's topics field and translates it to a it's equivalent HtmlcoinReq
 topics (optional) has a max lenght of 4
 
 Topics are order-dependent. A transaction with a log with topics [A, B] will be matched by the following topic filters:
