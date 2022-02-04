@@ -1,4 +1,4 @@
-package qtum
+package htmlcoin
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 type Method struct {
@@ -195,7 +195,7 @@ func (m *Method) GetGasPrice() (*big.Int, error) {
 	return minimumGas, nil
 }
 
-// hard coded 0x1 due to the unique nature of Qtums UTXO system, might
+// hard coded 0x1 due to the unique nature of HTMLCOIN UTXO system, might
 func (m *Method) GetTransactionCount(address string, status string) (*big.Int, error) {
 	// eventually might work this out to see if there's any transactions pending for an address in the mempool
 	// for now just always return 1
@@ -248,30 +248,30 @@ func (m *Method) Generate(blockNum int, maxTries *int) (resp GenerateResponse, e
 	generateToAccount := m.GetFlagString(FLAG_GENERATE_ADDRESS_TO)
 
 	if len(m.Accounts) == 0 && generateToAccount == nil {
-		return nil, errors.New("you must specify QTUM accounts")
+		return nil, errors.New("you must specify HTMLCOIN accounts")
 	}
 
-	var qAddress string
+	var hAddress string
 
 	if generateToAccount == nil {
 		acc := Account{m.Accounts[0]}
 
-		qAddress, err = acc.ToBase58Address(m.isMain)
+		hAddress, err = acc.ToBase58Address(m.isMain)
 		if err != nil {
 			if m.IsDebugEnabled() {
 				m.GetDebugLogger().Log("function", "Generate", "msg", "Error getting address for account", "error", err)
 			}
 			return nil, err
 		}
-		m.GetDebugLogger().Log("function", "Generate", "msg", "generating to account 0", "account", qAddress)
+		m.GetDebugLogger().Log("function", "Generate", "msg", "generating to account 0", "account", hAddress)
 	} else {
-		qAddress = *generateToAccount
-		m.GetDebugLogger().Log("function", "Generate", "msg", "generating to specified account", "account", qAddress)
+		hAddress = *generateToAccount
+		m.GetDebugLogger().Log("function", "Generate", "msg", "generating to specified account", "account", hAddress)
 	}
 
 	req := GenerateRequest{
 		BlockNum: blockNum,
-		Address:  qAddress,
+		Address:  hAddress,
 		MaxTries: maxTries,
 	}
 
@@ -290,7 +290,7 @@ func (m *Method) Generate(blockNum int, maxTries *int) (resp GenerateResponse, e
 }
 
 /**
- * Note that QTUM searchlogs api returns all logs in a transaction receipt if any log matches a topic
+ * Note that HTMLCOIN searchlogs api returns all logs in a transaction receipt if any log matches a topic
  * While Ethereum behaves differently and will only return logs where topics match
  */
 func (m *Method) SearchLogs(req *SearchLogsRequest) (receipts SearchLogsResponse, err error) {
