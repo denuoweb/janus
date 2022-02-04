@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/qtumproject/janus/pkg/conversion"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/conversion"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 type subscriptionInformation struct {
@@ -22,7 +22,7 @@ type subscriptionInformation struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	running    bool
-	qtum       *qtum.Qtum
+	htmlcoin       *htmlcoin.Htmlcoin
 }
 
 func (s *subscriptionInformation) run() {
@@ -53,12 +53,12 @@ func (s *subscriptionInformation) run() {
 	nextBlock = nil
 	translatedTopics, err := eth.TranslateTopics(s.params.Params.Topics)
 	if err != nil {
-		s.qtum.GetDebugLogger().Log("msg", "Error translating logs topics", "error", err)
+		s.htmlcoin.GetDebugLogger().Log("msg", "Error translating logs topics", "error", err)
 		return
 	}
 	ethAddresses, err := s.params.Params.GetAddresses()
 	if err != nil {
-		s.qtum.GetDebugLogger().Log("msg", "Error translating logs addresses", "error", err)
+		s.htmlcoin.GetDebugLogger().Log("msg", "Error translating logs addresses", "error", err)
 		return
 	}
 	stringAddresses := make([]string, len(ethAddresses))
@@ -70,25 +70,25 @@ func (s *subscriptionInformation) run() {
 		}
 	}
 
-	qtumTopics := qtum.NewSearchLogsTopics(translatedTopics)
-	req := &qtum.WaitForLogsRequest{
+	htmlcoinTopics := htmlcoin.NewSearchLogsTopics(translatedTopics)
+	req := &htmlcoin.WaitForLogsRequest{
 		FromBlock: nextBlock,
 		ToBlock:   nil,
-		Filter: qtum.WaitForLogsFilter{
+		Filter: htmlcoin.WaitForLogsFilter{
 			Addresses: &stringAddresses,
-			Topics:    &qtumTopics,
+			Topics:    &htmlcoinTopics,
 		},
 	}
 
-	if s.qtum.Chain() == qtum.ChainRegTest || s.qtum.Chain() == qtum.ChainTest {
+	if s.htmlcoin.Chain() == htmlcoin.ChainRegTest || s.htmlcoin.Chain() == htmlcoin.ChainTest {
 		req.MinimumConfirmations = 0
 	}
 
-	// this throttles QTUM api calls if waitforlogs is returning very quickly a lot
+	// this throttles HTMLCOIN api calls if waitforlogs is returning very quickly a lot
 	limitToXApiCalls := 5
 	inYSeconds := 10 * time.Second
-	// if a QTUM API call returns quicker than this, we will wait until this time is reached
-	// this prevents spamming the QTUM node too much
+	// if a HTMLCOIN API call returns quicker than this, we will wait until this time is reached
+	// this prevents spamming the HTMLCOIN node too much
 	minimumTimeBetweenCalls := 100 * time.Millisecond
 
 	rolling := newRollingLimit(limitToXApiCalls)
@@ -114,14 +114,14 @@ func (s *subscriptionInformation) run() {
 		req.FromBlock = nextBlock
 		timeBeforeCall := time.Now()
 		rolling.Push(&timeBeforeCall)
-		resp, err := s.qtum.WaitForLogsWithContext(s.ctx, req)
+		resp, err := s.htmlcoin.WaitForLogsWithContext(s.ctx, req)
 		timeAfterCall := time.Now()
 		if err == nil {
 			nextBlock = int(resp.NextBlock)
-			for _, qtumLog := range resp.Entries {
-				qtumLogs := []qtum.Log{qtumLog.Log()}
-				logs := conversion.FilterQtumLogs(stringAddresses, qtumTopics, qtumLogs)
-				ethLogs := conversion.ExtractETHLogsFromTransactionReceipt(qtumLog, logs)
+			for _, htmlcoinLog := range resp.Entries {
+				htmlcoinLogs := []htmlcoin.Log{htmlcoinLog.Log()}
+				logs := conversion.FilterHtmlcoinLogs(stringAddresses, htmlcoinTopics, htmlcoinLogs)
+				ethLogs := conversion.ExtractETHLogsFromTransactionReceipt(htmlcoinLog, logs)
 				for _, ethLog := range ethLogs {
 					subscription := &eth.EthSubscription{
 						SubscriptionID: s.Subscription.id,
@@ -130,10 +130,10 @@ func (s *subscriptionInformation) run() {
 					hash := computeHash(subscription)
 					if _, ok := sentHashes[hash]; !ok {
 						sentHashes[hash] = true
-						s.qtum.GetDebugLogger().Log("subscriptionId", s.id, "msg", "notifying of logs")
+						s.htmlcoin.GetDebugLogger().Log("subscriptionId", s.id, "msg", "notifying of logs")
 						jsonRpcNotification, err := eth.NewJSONRPCNotification("eth_subscription", subscription)
 						if err != nil {
-							s.qtum.GetErrorLogger().Log("subscriptionId", s.id, "err", err)
+							s.htmlcoin.GetErrorLogger().Log("subscriptionId", s.id, "err", err)
 							return
 						}
 						s.Send(jsonRpcNotification)
@@ -150,7 +150,7 @@ func (s *subscriptionInformation) run() {
 			}
 		} else {
 			// error occurred
-			s.qtum.GetDebugLogger().Log("subscriptionId", s.id, "err", err)
+			s.htmlcoin.GetDebugLogger().Log("subscriptionId", s.id, "err", err)
 			failures = failures + 1
 		}
 
@@ -159,7 +159,7 @@ func (s *subscriptionInformation) run() {
 		select {
 		case <-done:
 			// err is wrapped so we can't detect (err == context.Cancelled)
-			s.qtum.GetDebugLogger().Log("subscriptionId", s.id, "msg", "context closed, dropping subscription")
+			s.htmlcoin.GetDebugLogger().Log("subscriptionId", s.id, "msg", "context closed, dropping subscription")
 			return
 		default:
 		}
@@ -173,7 +173,7 @@ func (s *subscriptionInformation) run() {
 		}
 
 		if backoffTime > 0 {
-			s.qtum.GetDebugLogger().Log("subscriptionId", s.id, "msg", fmt.Sprintf("backing off for %d miliseconds", backoffTime/time.Millisecond))
+			s.htmlcoin.GetDebugLogger().Log("subscriptionId", s.id, "msg", fmt.Sprintf("backing off for %d miliseconds", backoffTime/time.Millisecond))
 		}
 
 		select {
