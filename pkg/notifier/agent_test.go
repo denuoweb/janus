@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestAgentAddSubscriptionLogs(t *testing.T) {
@@ -25,16 +25,16 @@ func TestAgentAddSubscriptionLogs(t *testing.T) {
 	doer := internal.NewDoerMappedMock()
 	topic1 := "topic1"
 
-	doer.AddResponse(qtum.MethodWaitForLogs, qtum.WaitForLogsResponse{
-		Entries: []qtum.WaitForLogsEntry{
-			internal.QtumWaitForLogsEntry(qtum.Log{
-				Address: internal.QtumTransactionReceipt(nil).ContractAddress,
+	doer.AddResponse(htmlcoin.MethodWaitForLogs, htmlcoin.WaitForLogsResponse{
+		Entries: []htmlcoin.WaitForLogsEntry{
+			internal.HtmlcoinWaitForLogsEntry(htmlcoin.Log{
+				Address: internal.HtmlcoinTransactionReceipt(nil).ContractAddress,
 				Topics:  []string{topic1},
 				Data:    "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			}),
 		},
 		Count:     1,
-		NextBlock: internal.QtumTransactionReceipt(nil).BlockNumber + 1,
+		NextBlock: internal.HtmlcoinTransactionReceipt(nil).BlockNumber + 1,
 	})
 
 	mockedClient, err := internal.CreateMockedClient(doer)
@@ -62,7 +62,7 @@ func TestAgentAddSubscriptionLogs(t *testing.T) {
 	id, err := agent.NewSubscription(notifier, &eth.EthSubscriptionRequest{
 		Method: "logs",
 		Params: &eth.EthLogSubscriptionParameter{
-			Address: internal.QtumTransactionReceipt(nil).ContractAddress,
+			Address: internal.HtmlcoinTransactionReceipt(nil).ContractAddress,
 			Topics: []interface{}{
 				topic1,
 			},
@@ -170,7 +170,7 @@ func TestAgentAddSubscriptionNewHeads(t *testing.T) {
 	doer := internal.NewDoerMappedMock()
 
 	for i := int64(1); i < 10; i++ {
-		doer.AddResponse(qtum.MethodGetBlockChainInfo, qtum.GetBlockChainInfoResponse{
+		doer.AddResponse(htmlcoin.MethodGetBlockChainInfo, htmlcoin.GetBlockChainInfoResponse{
 			Blocks:        i,
 			Bestblockhash: "0x1",
 		})
