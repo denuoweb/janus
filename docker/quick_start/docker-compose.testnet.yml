@@ -1,40 +1,40 @@
 version: "3.3"
 
 networks:
-  qtumd_testnet_network:
+  htmlcoind_testnet_network:
 volumes:
-  qtumd_testnet_volume:
+  htmlcoind_testnet_volume:
 
 services:
   janus_testnet:
-    image: qtum/janus:dev
+    image: htmlcoin/janus:dev
     container_name: janus_testchain
     build: 
         context: ../../
         cache_from:
           - golang:1.14-alpine
     ports:
-        - "23889:23889"
+        - "24889:24889"
     environment: 
-        - QTUM_RPC=http://qtum:testpasswd@qtum_testnet:3889
+        - HTMLCOIN_RPC=http://htmlcoin:testpasswd@htmlcoin_testnet:4889
         - COMPOSE_PROJECT_NAME=testnet
     volumes:
-        - ../standalone/myaccounts.txt:$GOPATH/github.com/qtumproject/janus/myaccounts.txt
+        - ../standalone/myaccounts.txt:$GOPATH/github.com/htmlcoin/janus/myaccounts.txt
         - ../../https:/https
         - ../../logs:/logs
     depends_on:
-      - qtum_testnet
-    command: --bind 0.0.0.0 --port 23889 --ignoreTransactions --accounts $GOPATH/github.com/qtumproject/janus/myaccounts.txt --dev --https-key /https/key.pem --https-cert /https/cert.pem
+      - htmlcoin_testnet
+    command: --bind 0.0.0.0 --port 24889 --ignoreTransactions --accounts $GOPATH/github.com/htmlcoin/janus/myaccounts.txt --dev --https-key /https/key.pem --https-cert /https/cert.pem
     networks:
-      - qtumd_testnet_network
+      - htmlcoind_testnet_network
 
-  qtum_testnet:
+  htmlcoin_testnet:
     ports:
-      - "3889:3889"
-    image: qtum/qtum
-    container_name: qtum_testnet
-    command: qtumd -testnet -txindex -addrindex=1 -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents -rpcuser=qtum -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole
+      - "4889:4889"
+    image: htmlcoin/htmlcoin
+    container_name: htmlcoin_testnet
+    command: htmlcoind -testnet -txindex -addrindex=1 -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole
     volumes:
-      - qtumd_testnet_volume:/root/.qtum
+      - htmlcoind_testnet_volume:/root/.htmlcoin
     networks:
-      - qtumd_testnet_network
+      - htmlcoind_testnet_network
