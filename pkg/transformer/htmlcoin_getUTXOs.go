@@ -5,23 +5,23 @@ import (
 	"math/big"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 	"github.com/shopspring/decimal"
 )
 
-type ProxyQTUMGetUTXOs struct {
-	*qtum.Qtum
+type ProxyHTMLCOINGetUTXOs struct {
+	*htmlcoin.Htmlcoin
 }
 
-var _ ETHProxy = (*ProxyQTUMGetUTXOs)(nil)
+var _ ETHProxy = (*ProxyHTMLCOINGetUTXOs)(nil)
 
-func (p *ProxyQTUMGetUTXOs) Method() string {
-	return "qtum_getUTXOs"
+func (p *ProxyHTMLCOINGetUTXOs) Method() string {
+	return "htmlcoin_getUTXOs"
 }
 
-func (p *ProxyQTUMGetUTXOs) Request(req *eth.JSONRPCRequest, c echo.Context) (interface{}, eth.JSONRPCError) {
+func (p *ProxyHTMLCOINGetUTXOs) Request(req *eth.JSONRPCRequest, c echo.Context) (interface{}, eth.JSONRPCError) {
 	var params eth.GetUTXOsRequest
 	if err := unmarshalRequest(req.Params, &params); err != nil {
 		// TODO: Correct error code?
@@ -37,30 +37,30 @@ func (p *ProxyQTUMGetUTXOs) Request(req *eth.JSONRPCRequest, c echo.Context) (in
 	return p.request(params)
 }
 
-func (p *ProxyQTUMGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTXOsResponse, eth.JSONRPCError) {
+func (p *ProxyHTMLCOINGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTXOsResponse, eth.JSONRPCError) {
 	address, err := convertETHAddress(utils.RemoveHexPrefix(params.Address), p.Chain())
 	if err != nil {
-		return nil, eth.NewInvalidParamsError("couldn't convert Ethereum address to Qtum address")
+		return nil, eth.NewInvalidParamsError("couldn't convert Ethereum address to Htmlcoin address")
 	}
 
-	req := qtum.GetAddressUTXOsRequest{
+	req := htmlcoin.GetAddressUTXOsRequest{
 		Addresses: []string{address},
 	}
 
-	resp, err := p.Qtum.GetAddressUTXOs(&req)
+	resp, err := p.Htmlcoin.GetAddressUTXOs(&req)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	blockCount, err := p.Qtum.GetBlockCount()
+	blockCount, err := p.Htmlcoin.GetBlockCount()
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	matureBlockHeight := big.NewInt(int64(p.Qtum.GetMatureBlockHeight()))
+	matureBlockHeight := big.NewInt(int64(p.Htmlcoin.GetMatureBlockHeight()))
 
 	//Convert minSumAmount to Satoshis
-	minimumSum := convertFromQtumToSatoshis(params.MinSumAmount)
+	minimumSum := convertFromHtmlcoinToSatoshis(params.MinSumAmount)
 	queryingAll := minimumSum.Equal(decimal.Zero)
 
 	allUtxoTypes := false
@@ -77,7 +77,7 @@ func (p *ProxyQTUMGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTXOsRe
 		utxoTypes[typ] = true
 	}
 
-	var utxos []eth.QtumUTXO
+	var utxos []eth.HtmlcoinUTXO
 	var minUTXOsSum decimal.Decimal
 	for _, utxo := range *resp {
 		ethUTXO := toEthResponseType(utxo)
@@ -130,11 +130,11 @@ func (p *ProxyQTUMGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTXOsRe
 	return nil, eth.NewCallbackError("required minimum amount is greater than total amount of UTXOs")
 }
 
-func toEthResponseType(utxo qtum.UTXO) eth.QtumUTXO {
-	return eth.QtumUTXO{
+func toEthResponseType(utxo htmlcoin.UTXO) eth.HtmlcoinUTXO {
+	return eth.HtmlcoinUTXO{
 		Address: utxo.Address,
 		TXID:    utxo.TXID,
 		Vout:    utxo.OutputIndex,
-		Amount:  convertFromSatoshisToQtum(utxo.Satoshis).String(),
+		Amount:  convertFromSatoshisToHtmlcoin(utxo.Satoshis).String(),
 	}
 }
