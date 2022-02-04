@@ -1,4 +1,4 @@
-package qtum
+package htmlcoin
 
 import (
 	"crypto/sha256"
@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
-type Qtum struct {
+type Htmlcoin struct {
 	*Client
 	*Method
 	chainMutex       sync.RWMutex
@@ -31,23 +31,23 @@ const (
 
 var AllChains = []string{ChainMain, ChainRegTest, ChainTest, ChainAuto, ChainUnknown}
 
-func New(c *Client, chain string) (*Qtum, error) {
+func New(c *Client, chain string) (*Htmlcoin, error) {
 	if !utils.InStrSlice(AllChains, chain) {
-		return nil, errors.Errorf("Invalid qtum chain: '%s'", chain)
+		return nil, errors.Errorf("Invalid htmlcoin chain: '%s'", chain)
 	}
 
-	qtum := &Qtum{
+	htmlcoin := &Htmlcoin{
 		Client: c,
 		Method: &Method{Client: c},
 		chain:  chain,
 	}
 
-	go qtum.detectChain()
+	go htmlcoin.detectChain()
 
-	return qtum, nil
+	return htmlcoin, nil
 }
 
-func (c *Qtum) detectChain() {
+func (c *Htmlcoin) detectChain() {
 	c.chainMutex.Lock()
 	if c.queryingChain || // already querying
 		(c.chain != ChainAuto && c.chain != "") { // specified in command line arguments
@@ -87,7 +87,7 @@ func (c *Qtum) detectChain() {
 	}
 }
 
-func (c *Qtum) Chain() string {
+func (c *Htmlcoin) Chain() string {
 	c.chainMutex.RLock()
 	queryingChain := c.queryingChain
 	queryingComplete := c.queryingComplete
@@ -106,7 +106,7 @@ func (c *Qtum) Chain() string {
 	return c.chain
 }
 
-func (c *Qtum) GetMatureBlockHeight() int {
+func (c *Htmlcoin) GetMatureBlockHeight() int {
 	blockHeightOverride := c.GetFlagInt(FLAG_MATURE_BLOCK_HEIGHT_OVERRIDE)
 	if blockHeightOverride != nil {
 		return *blockHeightOverride
@@ -115,11 +115,11 @@ func (c *Qtum) GetMatureBlockHeight() int {
 	return 2000
 }
 
-func (c *Qtum) CanGenerate() bool {
+func (c *Htmlcoin) CanGenerate() bool {
 	return c.Chain() == ChainRegTest
 }
 
-func (c *Qtum) GenerateIfPossible() {
+func (c *Htmlcoin) GenerateIfPossible() {
 	if !c.CanGenerate() {
 		return
 	}
@@ -134,8 +134,8 @@ func (c *Qtum) GenerateIfPossible() {
 type HexAddressPrefix string
 
 const (
-	PrefixMainChainAddress    HexAddressPrefix = "3a"
-	PrefixTestChainAddress    HexAddressPrefix = "78"
+	PrefixMainChainAddress    HexAddressPrefix = "29"
+	PrefixTestChainAddress    HexAddressPrefix = "64"
 	PrefixRegTestChainAddress HexAddressPrefix = PrefixTestChainAddress
 )
 
