@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
-type ETHProxyInitializer = func(*qtum.Qtum) ETHProxy
+type ETHProxyInitializer = func(*htmlcoin.Htmlcoin) ETHProxy
 
 func testETHProxyRequest(t *testing.T, initializer ETHProxyInitializer, requestParams []json.RawMessage, want interface{}) {
 	request, err := internal.PrepareEthRPCRequest(1, requestParams)
@@ -18,12 +18,12 @@ func testETHProxyRequest(t *testing.T, initializer ETHProxyInitializer, requestP
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 
 	internal.SetupGetBlockByHashResponses(t, mockedClientDoer)
 
 	//preparing proxy & executing request
-	proxyEth := initializer(qtumClient)
+	proxyEth := initializer(htmlcoinClient)
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatalf("Failed to process request on %T.Request(%s): %s", proxyEth, requestParams, jsonErr)
