@@ -1,5 +1,5 @@
-var QRC20 = artifacts.require("QRC20Token");
+var HRC20 = artifacts.require("HRC20Token");
 
 module.exports = async function(deployer) {
-  await deployer.deploy(QRC20);
+  await deployer.deploy(HRC20);
 };
