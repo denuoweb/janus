@@ -1,4 +1,4 @@
-package qtum
+package htmlcoin
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ import (
 var FLAG_GENERATE_ADDRESS_TO = "REGTEST_GENERATE_ADDRESS_TO"
 var FLAG_IGNORE_UNKNOWN_TX = "IGNORE_UNKNOWN_TX"
 var FLAG_DISABLE_SNIPPING_LOGS = "DISABLE_SNIPPING_LOGS"
-var FLAG_HIDE_QTUMD_LOGS = "HIDE_QTUMD_LOGS"
+var FLAG_HIDE_HTMLCOIND_LOGS = "HIDE_HTMLCOIND_LOGS"
 var FLAG_MATURE_BLOCK_HEIGHT_OVERRIDE = "FLAG_MATURE_BLOCK_HEIGHT_OVERRIDE"
 
 var maximumRequestTime = 10000
@@ -119,15 +119,15 @@ func (c *Client) RequestWithContext(ctx context.Context, method string, params i
 	for i := 0; i < max; i++ {
 		resp, err = c.Do(ctx, req)
 		if err != nil {
-			if strings.Contains(err.Error(), ErrQtumWorkQueueDepth.Error()) && i != max-1 {
+			if strings.Contains(err.Error(), ErrHtmlcoinWorkQueueDepth.Error()) && i != max-1 {
 				requestString := marshalToString(req)
 				backoffTime := computeBackoff(i, true)
-				c.GetLogger().Log("msg", fmt.Sprintf("QTUM process busy, backing off for %f seconds", backoffTime.Seconds()), "request", requestString)
+				c.GetLogger().Log("msg", fmt.Sprintf("HTMLCOIN process busy, backing off for %f seconds", backoffTime.Seconds()), "request", requestString)
 				time.Sleep(backoffTime)
-				c.GetLogger().Log("msg", "Retrying QTUM command")
+				c.GetLogger().Log("msg", "Retrying HTMLCOIN command")
 			} else {
 				if i != 0 {
-					c.GetLogger().Log("msg", fmt.Sprintf("Giving up on QTUM RPC call after %d tries since its busy", i+1))
+					c.GetLogger().Log("msg", fmt.Sprintf("Giving up on HTMLCOIN RPC call after %d tries since its busy", i+1))
 				}
 				return err
 			}
@@ -154,8 +154,8 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 
 	debugLogger.Log("method", req.Method)
 
-	if c.IsDebugEnabled() && !c.GetFlagBool(FLAG_HIDE_QTUMD_LOGS) && c.logWriter != nil {
-		fmt.Fprintf(c.logWriter, "=> qtum RPC request\n%s\n", reqBody)
+	if c.IsDebugEnabled() && !c.GetFlagBool(FLAG_HIDE_HTMLCOIND_LOGS) && c.logWriter != nil {
+		fmt.Fprintf(c.logWriter, "=> htmlcoin RPC request\n%s\n", reqBody)
 	}
 
 	respBody, err := c.do(ctx, bytes.NewReader(reqBody))
@@ -163,7 +163,7 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 		return nil, errors.Wrap(err, "Client#do")
 	}
 
-	if c.IsDebugEnabled() && !c.GetFlagBool(FLAG_HIDE_QTUMD_LOGS) {
+	if c.IsDebugEnabled() && !c.GetFlagBool(FLAG_HIDE_HTMLCOIND_LOGS) {
 		formattedBody, err := ReformatJSON(respBody)
 		formattedBodyStr := string(formattedBody)
 		if !c.GetFlagBool(FLAG_DISABLE_SNIPPING_LOGS) {
@@ -174,7 +174,7 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 		}
 
 		if err == nil && c.logWriter != nil {
-			fmt.Fprintf(c.logWriter, "<= qtum RPC response\n%s\n", formattedBodyStr)
+			fmt.Fprintf(c.logWriter, "<= htmlcoin RPC response\n%s\n", formattedBodyStr)
 		}
 	}
 
@@ -187,9 +187,9 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 		if IsKnownError(err) {
 			return nil, err
 		}
-		if string(respBody) == ErrQtumWorkQueueDepth.Error() {
-			// QTUM http server queue depth reached, need to retry
-			return nil, ErrQtumWorkQueueDepth
+		if string(respBody) == ErrHtmlcoinWorkQueueDepth.Error() {
+			// HTMLCOIN http server queue depth reached, need to retry
+			return nil, ErrHtmlcoinWorkQueueDepth
 		}
 		debugLogger.Log("msg", "Failed to parse response body", "body", string(respBody), "error", err)
 		return nil, errors.Wrap(err, "responseBodyToResult")
@@ -243,7 +243,7 @@ func (c *Client) do(ctx context.Context, body io.Reader) ([]byte, error) {
 
 	reader, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "ioutil error in qtum client package")
+		return nil, errors.Wrap(err, "ioutil error in htmlcoin client package")
 	}
 	return reader, nil
 }
@@ -328,7 +328,7 @@ func SetLogWriter(logWriter io.Writer) func(*Client) error {
 
 func SetLogger(l log.Logger) func(*Client) error {
 	return func(c *Client) error {
-		c.logger = log.WithPrefix(l, "component", "qtum.Client")
+		c.logger = log.WithPrefix(l, "component", "htmlcoin.Client")
 		return nil
 	}
 }
@@ -356,16 +356,16 @@ func SetIgnoreUnknownTransactions(ignore bool) func(*Client) error {
 	}
 }
 
-func SetDisableSnippingQtumRpcOutput(disable bool) func(*Client) error {
+func SetDisableSnippingHtmlcoinRpcOutput(disable bool) func(*Client) error {
 	return func(c *Client) error {
 		c.SetFlag(FLAG_DISABLE_SNIPPING_LOGS, !disable)
 		return nil
 	}
 }
 
-func SetHideQtumdLogs(hide bool) func(*Client) error {
+func SetHideHtmlcoindLogs(hide bool) func(*Client) error {
 	return func(c *Client) error {
-		c.SetFlag(FLAG_HIDE_QTUMD_LOGS, hide)
+		c.SetFlag(FLAG_HIDE_HTMLCOIND_LOGS, hide)
 		return nil
 	}
 }
@@ -450,13 +450,13 @@ func checkRPCURL(u string) error {
 		return errors.New("RPC URL must be set")
 	}
 
-	qtumRPC, err := url.Parse(u)
+	htmlcoinRPC, err := url.Parse(u)
 	if err != nil {
-		return errors.Errorf("QTUM_RPC URL: %s", u)
+		return errors.Errorf("HTMLCOIN_RPC URL: %s", u)
 	}
 
-	if qtumRPC.User == nil {
-		return errors.Errorf("QTUM_RPC URL (must specify user & password): %s", u)
+	if htmlcoinRPC.User == nil {
+		return errors.Errorf("HTMLCOIN_RPC URL (must specify user & password): %s", u)
 	}
 
 	return nil
