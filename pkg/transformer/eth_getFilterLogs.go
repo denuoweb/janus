@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/eth"
 )
 
 // ProxyETHGetFilterLogs implements ETHProxy
@@ -31,18 +31,18 @@ func (p *ProxyETHGetFilterLogs) Request(rawreq *eth.JSONRPCRequest, c echo.Conte
 	}
 }
 
-func (p *ProxyETHGetFilterLogs) request(filter *eth.Filter) (qtumresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
-	qtumresp = make(eth.GetFilterChangesResponse, 0)
+func (p *ProxyETHGetFilterLogs) request(filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
+	htmlcoinresp = make(eth.GetFilterChangesResponse, 0)
 
 	_lastBlockNumber, ok := filter.Data.Load("lastBlockNumber")
 	if !ok {
-		return qtumresp, eth.NewCallbackError("Could not get lastBlockNumber")
+		return htmlcoinresp, eth.NewCallbackError("Could not get lastBlockNumber")
 	}
 	lastBlockNumber := _lastBlockNumber.(uint64)
 
 	_toBlock, ok := filter.Data.Load("toBlock")
 	if !ok {
-		return qtumresp, eth.NewCallbackError("Could not get toBlock")
+		return htmlcoinresp, eth.NewCallbackError("Could not get toBlock")
 	}
 	toBlock := _toBlock.(uint64)
 
