@@ -4,14 +4,14 @@ import (
 	"math/big"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHCall implements ETHProxy
 type ProxyETHCall struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHCall) Method() string {
@@ -29,32 +29,32 @@ func (p *ProxyETHCall) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (inte
 }
 
 func (p *ProxyETHCall) request(ethreq *eth.CallRequest) (interface{}, eth.JSONRPCError) {
-	// eth req -> qtum req
-	qtumreq, jsonErr := p.ToRequest(ethreq)
+	// eth req -> htmlcoin req
+	htmlcoinreq, jsonErr := p.ToRequest(ethreq)
 	if jsonErr != nil {
 		return nil, jsonErr
 	}
-	if qtumreq.GasLimit != nil && qtumreq.GasLimit.Cmp(big.NewInt(40000000)) > 0 {
-		qtumresp := eth.CallResponse("0x")
-		p.Qtum.GetLogger().Log("msg", "Caller gas above allowance, capping", "requested", qtumreq.GasLimit.Int64(), "cap", "40,000,000")
-		return &qtumresp, nil
+	if htmlcoinreq.GasLimit != nil && htmlcoinreq.GasLimit.Cmp(big.NewInt(40000000)) > 0 {
+		htmlcoinresp := eth.CallResponse("0x")
+		p.Htmlcoin.GetLogger().Log("msg", "Caller gas above allowance, capping", "requested", htmlcoinreq.GasLimit.Int64(), "cap", "40,000,000")
+		return &htmlcoinresp, nil
 	}
 
-	qtumresp, err := p.CallContract(qtumreq)
+	htmlcoinresp, err := p.CallContract(htmlcoinreq)
 	if err != nil {
-		if err == qtum.ErrInvalidAddress {
-			qtumresp := eth.CallResponse("0x")
-			return &qtumresp, nil
+		if err == htmlcoin.ErrInvalidAddress {
+			htmlcoinresp := eth.CallResponse("0x")
+			return &htmlcoinresp, nil
 		}
 
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	// qtum res -> eth res
-	return p.ToResponse(qtumresp), nil
+	// htmlcoin res -> eth res
+	return p.ToResponse(htmlcoinresp), nil
 }
 
-func (p *ProxyETHCall) ToRequest(ethreq *eth.CallRequest) (*qtum.CallContractRequest, eth.JSONRPCError) {
+func (p *ProxyETHCall) ToRequest(ethreq *eth.CallRequest) (*htmlcoin.CallContractRequest, eth.JSONRPCError) {
 	from := ethreq.From
 	var err error
 	if utils.IsEthHexAddress(from) {
@@ -73,7 +73,7 @@ func (p *ProxyETHCall) ToRequest(ethreq *eth.CallRequest) (*qtum.CallContractReq
 		p.GetLogger().Log("msg", "Gas limit is too low", "gasLimit", gasLimit.String())
 	}
 
-	return &qtum.CallContractRequest{
+	return &htmlcoin.CallContractRequest{
 		To:       ethreq.To,
 		From:     from,
 		Data:     ethreq.Data,
@@ -81,7 +81,7 @@ func (p *ProxyETHCall) ToRequest(ethreq *eth.CallRequest) (*qtum.CallContractReq
 	}, nil
 }
 
-func (p *ProxyETHCall) ToResponse(qresp *qtum.CallContractResponse) interface{} {
+func (p *ProxyETHCall) ToResponse(qresp *htmlcoin.CallContractResponse) interface{} {
 	if qresp.ExecutionResult.Output == "" {
 		return eth.NewJSONRPCError(
 			-32000,
@@ -91,7 +91,7 @@ func (p *ProxyETHCall) ToResponse(qresp *qtum.CallContractResponse) interface{} 
 	}
 
 	data := utils.AddHexPrefix(qresp.ExecutionResult.Output)
-	qtumresp := eth.CallResponse(data)
-	return &qtumresp
+	htmlcoinresp := eth.CallResponse(data)
+	return &htmlcoinresp
 
 }
