@@ -4,26 +4,26 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/notifier"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/notifier"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 type Transformer struct {
-	qtumClient   *qtum.Qtum
+	htmlcoinClient   *htmlcoin.Htmlcoin
 	debugMode    bool
 	logger       log.Logger
 	transformers map[string]ETHProxy
 }
 
 // New creates a new Transformer
-func New(qtumClient *qtum.Qtum, proxies []ETHProxy, opts ...Option) (*Transformer, error) {
-	if qtumClient == nil {
-		return nil, errors.New("qtumClient cannot be nil")
+func New(htmlcoinClient *htmlcoin.Htmlcoin, proxies []ETHProxy, opts ...Option) (*Transformer, error) {
+	if htmlcoinClient == nil {
+		return nil, errors.New("htmlcoinClient cannot be nil")
 	}
 
 	t := &Transformer{
-		qtumClient: qtumClient,
+		htmlcoinClient: htmlcoinClient,
 		logger:     log.NewNopLogger(),
 	}
 
@@ -85,39 +85,39 @@ func (t *Transformer) IsDebugEnabled() bool {
 }
 
 // DefaultProxies are the default proxy methods made available
-func DefaultProxies(qtumRPCClient *qtum.Qtum, agent *notifier.Agent) []ETHProxy {
+func DefaultProxies(htmlcoinRPCClient *htmlcoin.Htmlcoin, agent *notifier.Agent) []ETHProxy {
 	filter := eth.NewFilterSimulator()
-	getFilterChanges := &ProxyETHGetFilterChanges{Qtum: qtumRPCClient, filter: filter}
-	ethCall := &ProxyETHCall{Qtum: qtumRPCClient}
+	getFilterChanges := &ProxyETHGetFilterChanges{Htmlcoin: htmlcoinRPCClient, filter: filter}
+	ethCall := &ProxyETHCall{Htmlcoin: htmlcoinRPCClient}
 
 	return []ETHProxy{
 		ethCall,
-		&ProxyNetListening{Qtum: qtumRPCClient},
+		&ProxyNetListening{Htmlcoin: htmlcoinRPCClient},
 		&ProxyETHPersonalUnlockAccount{},
-		&ProxyETHChainId{Qtum: qtumRPCClient},
-		&ProxyETHBlockNumber{Qtum: qtumRPCClient},
-		&ProxyETHHashrate{Qtum: qtumRPCClient},
-		&ProxyETHMining{Qtum: qtumRPCClient},
-		&ProxyETHNetVersion{Qtum: qtumRPCClient},
-		&ProxyETHGetTransactionByHash{Qtum: qtumRPCClient},
-		&ProxyETHGetTransactionByBlockNumberAndIndex{Qtum: qtumRPCClient},
-		&ProxyETHGetLogs{Qtum: qtumRPCClient},
-		&ProxyETHGetTransactionReceipt{Qtum: qtumRPCClient},
-		&ProxyETHSendTransaction{Qtum: qtumRPCClient},
-		&ProxyETHAccounts{Qtum: qtumRPCClient},
-		&ProxyETHGetCode{Qtum: qtumRPCClient},
+		&ProxyETHChainId{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHBlockNumber{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHHashrate{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHMining{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHNetVersion{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetTransactionByHash{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetTransactionByBlockNumberAndIndex{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetLogs{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetTransactionReceipt{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHSendTransaction{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHAccounts{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetCode{Htmlcoin: htmlcoinRPCClient},
 
-		&ProxyETHNewFilter{Qtum: qtumRPCClient, filter: filter},
-		&ProxyETHNewBlockFilter{Qtum: qtumRPCClient, filter: filter},
+		&ProxyETHNewFilter{Htmlcoin: htmlcoinRPCClient, filter: filter},
+		&ProxyETHNewBlockFilter{Htmlcoin: htmlcoinRPCClient, filter: filter},
 		getFilterChanges,
 		&ProxyETHGetFilterLogs{ProxyETHGetFilterChanges: getFilterChanges},
-		&ProxyETHUninstallFilter{Qtum: qtumRPCClient, filter: filter},
+		&ProxyETHUninstallFilter{Htmlcoin: htmlcoinRPCClient, filter: filter},
 
 		&ProxyETHEstimateGas{ProxyETHCall: ethCall},
-		&ProxyETHGetBlockByNumber{Qtum: qtumRPCClient},
-		&ProxyETHGetBlockByHash{Qtum: qtumRPCClient},
-		&ProxyETHGetBalance{Qtum: qtumRPCClient},
-		&ProxyETHGetStorageAt{Qtum: qtumRPCClient},
+		&ProxyETHGetBlockByNumber{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetBlockByHash{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetBalance{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGetStorageAt{Htmlcoin: htmlcoinRPCClient},
 		&ETHGetCompilers{},
 		&ETHProtocolVersion{},
 		&ETHGetUncleByBlockHashAndIndex{},
@@ -125,18 +125,18 @@ func DefaultProxies(qtumRPCClient *qtum.Qtum, agent *notifier.Agent) []ETHProxy 
 		&ETHGetUncleCountByBlockNumber{},
 		&Web3ClientVersion{},
 		&Web3Sha3{},
-		&ProxyETHSign{Qtum: qtumRPCClient},
-		&ProxyETHGasPrice{Qtum: qtumRPCClient},
-		&ProxyETHTxCount{Qtum: qtumRPCClient},
-		&ProxyETHSignTransaction{Qtum: qtumRPCClient},
-		&ProxyETHSendRawTransaction{Qtum: qtumRPCClient},
+		&ProxyETHSign{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHGasPrice{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHTxCount{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHSignTransaction{Htmlcoin: htmlcoinRPCClient},
+		&ProxyETHSendRawTransaction{Htmlcoin: htmlcoinRPCClient},
 
-		&ETHSubscribe{Qtum: qtumRPCClient, Agent: agent},
-		&ETHUnsubscribe{Qtum: qtumRPCClient, Agent: agent},
+		&ETHSubscribe{Htmlcoin: htmlcoinRPCClient, Agent: agent},
+		&ETHUnsubscribe{Htmlcoin: htmlcoinRPCClient, Agent: agent},
 
-		&ProxyQTUMGetUTXOs{Qtum: qtumRPCClient},
+		&ProxyHTMLCOINGetUTXOs{Htmlcoin: htmlcoinRPCClient},
 
-		&ProxyNetPeerCount{Qtum: qtumRPCClient},
+		&ProxyNetPeerCount{Htmlcoin: htmlcoinRPCClient},
 	}
 }
 
