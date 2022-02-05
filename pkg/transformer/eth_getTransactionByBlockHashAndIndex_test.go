@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
-func initializeProxyETHGetTransactionByBlockHashAndIndex(qtumClient *qtum.Qtum) ETHProxy {
-	return &ProxyETHGetTransactionByBlockHashAndIndex{qtumClient}
+func initializeProxyETHGetTransactionByBlockHashAndIndex(htmlcoinClient *htmlcoin.Htmlcoin) ETHProxy {
+	return &ProxyETHGetTransactionByBlockHashAndIndex{htmlcoinClient}
 }
 
 func TestGetTransactionByBlockHashAndIndex(t *testing.T) {
