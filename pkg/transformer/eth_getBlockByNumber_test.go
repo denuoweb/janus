@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
-func initializeProxyETHGetBlockByNumber(qtumClient *qtum.Qtum) ETHProxy {
-	return &ProxyETHGetBlockByNumber{qtumClient}
+func initializeProxyETHGetBlockByNumber(htmlcoinClient *htmlcoin.Htmlcoin) ETHProxy {
+	return &ProxyETHGetBlockByNumber{htmlcoinClient}
 }
 
 func TestGetBlockByNumberRequest(t *testing.T) {
@@ -39,16 +39,16 @@ func TestGetBlockByNumberUnknownBlockRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 
-	unknownBlockResponse := qtum.GetErrorResponse(qtum.ErrInvalidParameter)
-	err = mockedClientDoer.AddError(qtum.MethodGetBlockHash, unknownBlockResponse)
+	unknownBlockResponse := htmlcoin.GetErrorResponse(htmlcoin.ErrInvalidParameter)
+	err = mockedClientDoer.AddError(htmlcoin.MethodGetBlockHash, unknownBlockResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetBlockByNumber{qtumClient}
+	proxyEth := ProxyETHGetBlockByNumber{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
