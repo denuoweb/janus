@@ -5,14 +5,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetBalance implements ETHProxy
 type ProxyETHGetBalance struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetBalance) Method() string {
@@ -29,14 +29,14 @@ func (p *ProxyETHGetBalance) Request(rawreq *eth.JSONRPCRequest, c echo.Context)
 	addr := utils.RemoveHexPrefix(req.Address)
 	{
 		// is address a contract or an account?
-		qtumreq := qtum.GetAccountInfoRequest(addr)
-		qtumresp, err := p.GetAccountInfo(&qtumreq)
+		htmlcoinreq := htmlcoin.GetAccountInfoRequest(addr)
+		htmlcoinresp, err := p.GetAccountInfo(&htmlcoinreq)
 
 		// the address is a contract
 		if err == nil {
 			// the unit of the balance Satoshi
 			p.GetDebugLogger().Log("method", p.Method(), "address", req.Address, "msg", "is a contract")
-			return hexutil.EncodeUint64(uint64(qtumresp.Balance)), nil
+			return hexutil.EncodeUint64(uint64(htmlcoinresp.Balance)), nil
 		}
 	}
 
@@ -48,10 +48,10 @@ func (p *ProxyETHGetBalance) Request(rawreq *eth.JSONRPCRequest, c echo.Context)
 			return nil, eth.NewCallbackError(err.Error())
 		}
 
-		qtumreq := qtum.GetAddressBalanceRequest{Address: base58Addr}
-		qtumresp, err := p.GetAddressBalance(&qtumreq)
+		htmlcoinreq := htmlcoin.GetAddressBalanceRequest{Address: base58Addr}
+		htmlcoinresp, err := p.GetAddressBalance(&htmlcoinreq)
 		if err != nil {
-			if err == qtum.ErrInvalidAddress {
+			if err == htmlcoin.ErrInvalidAddress {
 				// invalid address should return 0x0
 				return "0x0", nil
 			}
@@ -59,10 +59,10 @@ func (p *ProxyETHGetBalance) Request(rawreq *eth.JSONRPCRequest, c echo.Context)
 			return nil, eth.NewCallbackError(err.Error())
 		}
 
-		// 1 QTUM = 10 ^ 8 Satoshi
-		balance := new(big.Int).SetUint64(qtumresp.Balance)
+		// 1 HTMLCOIN = 10 ^ 8 Satoshi
+		balance := new(big.Int).SetUint64(htmlcoinresp.Balance)
 
-		//Balance for ETH response is represented in Weis (1 QTUM Satoshi = 10 ^ 10 Wei)
+		//Balance for ETH response is represented in Weis (1 HTMLCOIN Satoshi = 10 ^ 10 Wei)
 		balance = balance.Mul(balance, big.NewInt(10000000000))
 
 		return hexutil.EncodeBig(balance), nil
