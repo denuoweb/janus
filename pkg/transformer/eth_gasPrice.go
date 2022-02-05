@@ -5,13 +5,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHEstimateGas implements ETHProxy
 type ProxyETHGasPrice struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGasPrice) Method() string {
@@ -19,16 +19,16 @@ func (p *ProxyETHGasPrice) Method() string {
 }
 
 func (p *ProxyETHGasPrice) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (interface{}, eth.JSONRPCError) {
-	qtumresp, err := p.Qtum.GetGasPrice()
+	htmlcoinresp, err := p.Htmlcoin.GetGasPrice()
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	// qtum res -> eth res
-	return p.response(qtumresp), nil
+	// htmlcoin res -> eth res
+	return p.response(htmlcoinresp), nil
 }
 
-func (p *ProxyETHGasPrice) response(qtumresp *big.Int) string {
-	// 34 GWEI is the minimum price that QTUM will confirm tx with
-	return hexutil.EncodeBig(convertFromSatoshiToWei(qtumresp))
+func (p *ProxyETHGasPrice) response(htmlcoinresp *big.Int) string {
+	// 34 GWEI is the minimum price that HTMLCOIN will confirm tx with
+	return hexutil.EncodeBig(convertFromSatoshiToWei(htmlcoinresp))
 }
