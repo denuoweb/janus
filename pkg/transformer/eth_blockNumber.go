@@ -6,13 +6,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHBlockNumber implements ETHProxy
 type ProxyETHBlockNumber struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHBlockNumber) Method() string {
@@ -24,9 +24,9 @@ func (p *ProxyETHBlockNumber) Request(_ *eth.JSONRPCRequest, c echo.Context) (in
 }
 
 func (p *ProxyETHBlockNumber) request(c echo.Context, retries int) (*eth.BlockNumberResponse, eth.JSONRPCError) {
-	qtumresp, err := p.Qtum.GetBlockCount()
+	htmlcoinresp, err := p.Htmlcoin.GetBlockCount()
 	if err != nil {
-		if retries > 0 && strings.Contains(err.Error(), qtum.ErrTryAgain.Error()) {
+		if retries > 0 && strings.Contains(err.Error(), htmlcoin.ErrTryAgain.Error()) {
 			ctx := c.Request().Context()
 			t := time.NewTimer(500 * time.Millisecond)
 			select {
@@ -40,12 +40,12 @@ func (p *ProxyETHBlockNumber) request(c echo.Context, retries int) (*eth.BlockNu
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	// qtum res -> eth res
-	return p.ToResponse(qtumresp), nil
+	// htmlcoin res -> eth res
+	return p.ToResponse(htmlcoinresp), nil
 }
 
-func (p *ProxyETHBlockNumber) ToResponse(qtumresp *qtum.GetBlockCountResponse) *eth.BlockNumberResponse {
-	hexVal := hexutil.EncodeBig(qtumresp.Int)
+func (p *ProxyETHBlockNumber) ToResponse(htmlcoinresp *htmlcoin.GetBlockCountResponse) *eth.BlockNumberResponse {
+	hexVal := hexutil.EncodeBig(htmlcoinresp.Int)
 	ethresp := eth.BlockNumberResponse(hexVal)
 	return &ethresp
 }
