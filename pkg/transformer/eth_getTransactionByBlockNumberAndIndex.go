@@ -5,13 +5,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHGetTransactionByBlockNumberAndIndex implements ETHProxy
 type ProxyETHGetTransactionByBlockNumberAndIndex struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetTransactionByBlockNumberAndIndex) Method() string {
@@ -39,12 +39,12 @@ func (p *ProxyETHGetTransactionByBlockNumberAndIndex) request(req *eth.GetTransa
 		return nil, eth.NewInvalidParamsError("invalid argument 1")
 	}
 
-	blockNum, err := getBlockNumberByParam(p.Qtum, req.BlockNumber, false)
+	blockNum, err := getBlockNumberByParam(p.Htmlcoin, req.BlockNumber, false)
 	if err != nil {
 		return nil, eth.NewCallbackError("couldn't get block number by parameter")
 	}
 
-	blockHash, err := proxyETHGetBlockByHash(p, p.Qtum, blockNum)
+	blockHash, err := proxyETHGetBlockByHash(p, p.Htmlcoin, blockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (p *ProxyETHGetTransactionByBlockNumberAndIndex) request(req *eth.GetTransa
 			BlockHash:        string(*blockHash),
 			TransactionIndex: req.TransactionIndex,
 		}
-		proxy = &ProxyETHGetTransactionByBlockHashAndIndex{Qtum: p.Qtum}
+		proxy = &ProxyETHGetTransactionByBlockHashAndIndex{Htmlcoin: p.Htmlcoin}
 	)
 	return proxy.request(getBlockByHashReq)
 }
