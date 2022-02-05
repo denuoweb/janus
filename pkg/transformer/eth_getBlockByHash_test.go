@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
-func initializeProxyETHGetBlockByHash(qtumClient *qtum.Qtum) ETHProxy {
-	return &ProxyETHGetBlockByHash{qtumClient}
+func initializeProxyETHGetBlockByHash(htmlcoinClient *htmlcoin.Htmlcoin) ETHProxy {
+	return &ProxyETHGetBlockByHash{htmlcoinClient}
 }
 
 func TestGetBlockByHashRequestNonceLength(t *testing.T) {
