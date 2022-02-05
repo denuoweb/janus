@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestAccountRequest(t *testing.T) {
@@ -19,7 +19,7 @@ func TestAccountRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,10 +33,10 @@ func TestAccountRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	qtumClient.Accounts = append(qtumClient.Accounts, exampleAcc1, exampleAcc2)
+	htmlcoinClient.Accounts = append(htmlcoinClient.Accounts, exampleAcc1, exampleAcc2)
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHAccounts{qtumClient}
+	proxyEth := ProxyETHAccounts{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr.Error())
@@ -55,12 +55,12 @@ func TestAccountRequest(t *testing.T) {
 
 func TestAccountMethod(t *testing.T) {
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 	//preparing proxy & executing request
-	proxyEth := ProxyETHAccounts{qtumClient}
+	proxyEth := ProxyETHAccounts{htmlcoinClient}
 	got := proxyEth.Method()
 
 	want := string("eth_accounts")
@@ -74,12 +74,12 @@ func TestAccountMethod(t *testing.T) {
 }
 func TestAccountToResponse(t *testing.T) {
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	proxyEth := ProxyETHAccounts{qtumClient}
-	callResponse := qtum.CallContractResponse{
+	proxyEth := ProxyETHAccounts{htmlcoinClient}
+	callResponse := htmlcoin.CallContractResponse{
 		ExecutionResult: struct {
 			GasUsed         int    `json:"gasUsed"`
 			Excepted        string `json:"excepted"`
