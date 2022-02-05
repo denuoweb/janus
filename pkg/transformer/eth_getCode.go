@@ -2,14 +2,14 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetCode implements ETHProxy
 type ProxyETHGetCode struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetCode) Method() string {
@@ -27,11 +27,11 @@ func (p *ProxyETHGetCode) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (i
 }
 
 func (p *ProxyETHGetCode) request(ethreq *eth.GetCodeRequest) (eth.GetCodeResponse, eth.JSONRPCError) {
-	qtumreq := qtum.GetAccountInfoRequest(utils.RemoveHexPrefix(ethreq.Address))
+	htmlcoinreq := htmlcoin.GetAccountInfoRequest(utils.RemoveHexPrefix(ethreq.Address))
 
-	qtumresp, err := p.GetAccountInfo(&qtumreq)
+	htmlcoinresp, err := p.GetAccountInfo(&htmlcoinreq)
 	if err != nil {
-		if err == qtum.ErrInvalidAddress {
+		if err == htmlcoin.ErrInvalidAddress {
 			/**
 			// correct response for an invalid address
 			{
@@ -46,6 +46,6 @@ func (p *ProxyETHGetCode) request(ethreq *eth.GetCodeRequest) (eth.GetCodeRespon
 		}
 	}
 
-	// qtum res -> eth res
-	return eth.GetCodeResponse(utils.AddHexPrefix(qtumresp.Code)), nil
+	// htmlcoin res -> eth res
+	return eth.GetCodeResponse(utils.AddHexPrefix(htmlcoinresp.Code)), nil
 }
