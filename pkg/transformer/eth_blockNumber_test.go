@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestBlockNumberRequest(t *testing.T) {
@@ -20,20 +20,20 @@ func TestBlockNumberRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing client response
-	getBlockCountResponse := qtum.GetBlockCountResponse{Int: big.NewInt(11284900)}
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodGetBlockCount, getBlockCountResponse)
+	getBlockCountResponse := htmlcoin.GetBlockCountResponse{Int: big.NewInt(11284900)}
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodGetBlockCount, getBlockCountResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHBlockNumber{qtumClient}
+	proxyEth := ProxyETHBlockNumber{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
