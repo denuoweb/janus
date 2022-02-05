@@ -5,25 +5,25 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestChainIdMainnet(t *testing.T) {
-	testChainIdsImpl(t, "main", "0x22b8")
+	testChainIdsImpl(t, "main", "0x115C")
 }
 
 func TestChainIdTestnet(t *testing.T) {
-	testChainIdsImpl(t, "test", "0x22b9")
+	testChainIdsImpl(t, "test", "0x115D")
 }
 
 func TestChainIdRegtest(t *testing.T) {
-	testChainIdsImpl(t, "regtest", "0x22ba")
+	testChainIdsImpl(t, "regtest", "0x115E")
 }
 
 func TestChainIdUnknown(t *testing.T) {
-	testChainIdsImpl(t, "???", "0x22ba")
+	testChainIdsImpl(t, "???", "0x115E")
 }
 
 func testChainIdsImpl(t *testing.T, chain string, expected string) {
@@ -35,20 +35,20 @@ func testChainIdsImpl(t *testing.T, chain string, expected string) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing client response
-	getBlockCountResponse := qtum.GetBlockChainInfoResponse{Chain: chain}
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodGetBlockChainInfo, getBlockCountResponse)
+	getBlockCountResponse := htmlcoin.GetBlockChainInfoResponse{Chain: chain}
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodGetBlockChainInfo, getBlockCountResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHChainId{qtumClient}
+	proxyEth := ProxyETHChainId{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(request, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
