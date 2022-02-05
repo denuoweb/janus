@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetStorageAt implements ETHProxy
 type ProxyETHGetStorageAt struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetStorageAt) Method() string {
@@ -25,39 +25,39 @@ func (p *ProxyETHGetStorageAt) Request(rawreq *eth.JSONRPCRequest, c echo.Contex
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	qtumAddress := utils.RemoveHexPrefix(req.Address)
-	blockNumber, err := getBlockNumberByParam(p.Qtum, req.BlockNumber, false)
+	htmlcoinAddress := utils.RemoveHexPrefix(req.Address)
+	blockNumber, err := getBlockNumberByParam(p.Htmlcoin, req.BlockNumber, false)
 	if err != nil {
 		p.GetDebugLogger().Log("msg", fmt.Sprintf("Failed to get block number by param for '%s'", req.BlockNumber), "err", err)
 		return nil, err
 	}
 
-	return p.request(&qtum.GetStorageRequest{
-		Address:     qtumAddress,
+	return p.request(&htmlcoin.GetStorageRequest{
+		Address:     htmlcoinAddress,
 		BlockNumber: blockNumber,
 	}, utils.RemoveHexPrefix(req.Index))
 }
 
-func (p *ProxyETHGetStorageAt) request(ethreq *qtum.GetStorageRequest, index string) (*eth.GetStorageResponse, eth.JSONRPCError) {
-	qtumresp, err := p.Qtum.GetStorage(ethreq)
+func (p *ProxyETHGetStorageAt) request(ethreq *htmlcoin.GetStorageRequest, index string) (*eth.GetStorageResponse, eth.JSONRPCError) {
+	htmlcoinresp, err := p.Htmlcoin.GetStorage(ethreq)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	// qtum res -> eth res
-	return p.ToResponse(qtumresp, index), nil
+	// htmlcoin res -> eth res
+	return p.ToResponse(htmlcoinresp, index), nil
 }
 
-func (p *ProxyETHGetStorageAt) ToResponse(qtumresp *qtum.GetStorageResponse, slot string) *eth.GetStorageResponse {
+func (p *ProxyETHGetStorageAt) ToResponse(htmlcoinresp *htmlcoin.GetStorageResponse, slot string) *eth.GetStorageResponse {
 	// the value for unknown anything
 	storageData := eth.GetStorageResponse("0x0000000000000000000000000000000000000000000000000000000000000000")
 	if len(slot) != 64 {
 		slot = leftPadStringWithZerosTo64Bytes(slot)
 	}
-	for _, outerValue := range *qtumresp {
-		qtumStorageData, ok := outerValue[slot]
+	for _, outerValue := range *htmlcoinresp {
+		htmlcoinStorageData, ok := outerValue[slot]
 		if ok {
-			storageData = eth.GetStorageResponse(utils.AddHexPrefix(qtumStorageData))
+			storageData = eth.GetStorageResponse(utils.AddHexPrefix(htmlcoinStorageData))
 			return &storageData
 		}
 	}
