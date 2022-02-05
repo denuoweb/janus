@@ -6,15 +6,15 @@ import (
 
 	"github.com/labstack/echo"
 
-	"github.com/qtumproject/janus/pkg/conversion"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/conversion"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetFilterChanges implements ETHProxy
 type ProxyETHGetFilterChanges struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 	filter *eth.FilterSimulator
 }
 
@@ -41,18 +41,18 @@ func (p *ProxyETHGetFilterChanges) Request(rawreq *eth.JSONRPCRequest, c echo.Co
 	}
 }
 
-func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (qtumresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
-	qtumresp = make(eth.GetFilterChangesResponse, 0)
+func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
+	htmlcoinresp = make(eth.GetFilterChangesResponse, 0)
 
 	_lastBlockNumber, ok := filter.Data.Load("lastBlockNumber")
 	if !ok {
-		return qtumresp, eth.NewCallbackError("Could not get lastBlockNumber")
+		return htmlcoinresp, eth.NewCallbackError("Could not get lastBlockNumber")
 	}
 	lastBlockNumber := _lastBlockNumber.(uint64)
 
 	blockCountBigInt, blockErr := p.GetBlockCount()
 	if blockErr != nil {
-		return qtumresp, eth.NewCallbackError(blockErr.Error())
+		return htmlcoinresp, eth.NewCallbackError(blockErr.Error())
 	}
 	blockCount := blockCountBigInt.Uint64()
 
@@ -64,29 +64,29 @@ func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (qtumr
 
 		resp, err := p.GetBlockHash(blockNumber)
 		if err != nil {
-			return qtumresp, eth.NewCallbackError(err.Error())
+			return htmlcoinresp, eth.NewCallbackError(err.Error())
 		}
 
 		hashes[i] = utils.AddHexPrefix(string(resp))
 	}
 
-	qtumresp = hashes
+	htmlcoinresp = hashes
 	filter.Data.Store("lastBlockNumber", blockCount)
 	return
 }
 
-func (p *ProxyETHGetFilterChanges) requestFilter(filter *eth.Filter) (qtumresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
-	qtumresp = make(eth.GetFilterChangesResponse, 0)
+func (p *ProxyETHGetFilterChanges) requestFilter(filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
+	htmlcoinresp = make(eth.GetFilterChangesResponse, 0)
 
 	_lastBlockNumber, ok := filter.Data.Load("lastBlockNumber")
 	if !ok {
-		return qtumresp, eth.NewCallbackError("Could not get lastBlockNumber")
+		return htmlcoinresp, eth.NewCallbackError("Could not get lastBlockNumber")
 	}
 	lastBlockNumber := _lastBlockNumber.(uint64)
 
 	blockCountBigInt, blockErr := p.GetBlockCount()
 	if blockErr != nil {
-		return qtumresp, eth.NewCallbackError(blockErr.Error())
+		return htmlcoinresp, eth.NewCallbackError(blockErr.Error())
 	}
 	blockCount := blockCountBigInt.Uint64()
 
@@ -104,13 +104,13 @@ func (p *ProxyETHGetFilterChanges) requestFilter(filter *eth.Filter) (qtumresp e
 	return p.doSearchLogs(searchLogsReq)
 }
 
-func (p *ProxyETHGetFilterChanges) doSearchLogs(req *qtum.SearchLogsRequest) (eth.GetFilterChangesResponse, eth.JSONRPCError) {
-	resp, err := conversion.SearchLogsAndFilterExtraTopics(p.Qtum, req)
+func (p *ProxyETHGetFilterChanges) doSearchLogs(req *htmlcoin.SearchLogsRequest) (eth.GetFilterChangesResponse, eth.JSONRPCError) {
+	resp, err := conversion.SearchLogsAndFilterExtraTopics(p.Htmlcoin, req)
 	if err != nil {
 		return nil, err
 	}
 
-	receiptToResult := func(receipt *qtum.TransactionReceipt) []interface{} {
+	receiptToResult := func(receipt *htmlcoin.TransactionReceipt) []interface{} {
 		logs := conversion.ExtractETHLogsFromTransactionReceipt(receipt, receipt.Log)
 		res := make([]interface{}, len(logs))
 		for i := range res {
@@ -120,14 +120,14 @@ func (p *ProxyETHGetFilterChanges) doSearchLogs(req *qtum.SearchLogsRequest) (et
 	}
 	results := make(eth.GetFilterChangesResponse, 0)
 	for _, receipt := range resp {
-		r := qtum.TransactionReceipt(receipt)
+		r := htmlcoin.TransactionReceipt(receipt)
 		results = append(results, receiptToResult(&r)...)
 	}
 
 	return results, nil
 }
 
-func (p *ProxyETHGetFilterChanges) toSearchLogsReq(filter *eth.Filter, from, to *big.Int) (*qtum.SearchLogsRequest, eth.JSONRPCError) {
+func (p *ProxyETHGetFilterChanges) toSearchLogsReq(filter *eth.Filter, from, to *big.Int) (*htmlcoin.SearchLogsRequest, eth.JSONRPCError) {
 	ethreq := filter.Request.(*eth.NewFilterRequest)
 	var err error
 	var addresses []string
@@ -150,7 +150,7 @@ func (p *ProxyETHGetFilterChanges) toSearchLogsReq(filter *eth.Filter, from, to 
 		}
 	}
 
-	qtumreq := &qtum.SearchLogsRequest{
+	htmlcoinreq := &htmlcoin.SearchLogsRequest{
 		Addresses: addresses,
 		FromBlock: from,
 		ToBlock:   to,
@@ -158,8 +158,8 @@ func (p *ProxyETHGetFilterChanges) toSearchLogsReq(filter *eth.Filter, from, to 
 
 	topics, ok := filter.Data.Load("topics")
 	if ok {
-		qtumreq.Topics = topics.([]qtum.SearchLogsTopic)
+		htmlcoinreq.Topics = topics.([]htmlcoin.SearchLogsTopic)
 	}
 
-	return qtumreq, nil
+	return htmlcoinreq, nil
 }
