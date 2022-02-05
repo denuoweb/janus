@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/conversion"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/conversion"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetLogs implements ETHProxy
 type ProxyETHGetLogs struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetLogs) Method() string {
@@ -31,24 +31,24 @@ func (p *ProxyETHGetLogs) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (i
 	// 	return nil, errors.New("topics is not supported yet")
 	// }
 
-	// Calls ToRequest in order transform ETH-Request to a Qtum-Request
-	qtumreq, err := p.ToRequest(&req)
+	// Calls ToRequest in order transform ETH-Request to a Htmlcoin-Request
+	htmlcoinreq, err := p.ToRequest(&req)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.request(qtumreq)
+	return p.request(htmlcoinreq)
 }
 
-func (p *ProxyETHGetLogs) request(req *qtum.SearchLogsRequest) (*eth.GetLogsResponse, eth.JSONRPCError) {
-	receipts, err := conversion.SearchLogsAndFilterExtraTopics(p.Qtum, req)
+func (p *ProxyETHGetLogs) request(req *htmlcoin.SearchLogsRequest) (*eth.GetLogsResponse, eth.JSONRPCError) {
+	receipts, err := conversion.SearchLogsAndFilterExtraTopics(p.Htmlcoin, req)
 	if err != nil {
 		return nil, err
 	}
 
 	logs := make([]eth.Log, 0)
 	for _, receipt := range receipts {
-		r := qtum.TransactionReceipt(receipt)
+		r := htmlcoin.TransactionReceipt(receipt)
 		logs = append(logs, conversion.ExtractETHLogsFromTransactionReceipt(r, r.Log)...)
 	}
 
@@ -56,20 +56,20 @@ func (p *ProxyETHGetLogs) request(req *qtum.SearchLogsRequest) (*eth.GetLogsResp
 	return &resp, nil
 }
 
-func (p *ProxyETHGetLogs) ToRequest(ethreq *eth.GetLogsRequest) (*qtum.SearchLogsRequest, eth.JSONRPCError) {
-	//transform EthRequest fromBlock to QtumReq fromBlock:
-	from, err := getBlockNumberByRawParam(p.Qtum, ethreq.FromBlock, true)
+func (p *ProxyETHGetLogs) ToRequest(ethreq *eth.GetLogsRequest) (*htmlcoin.SearchLogsRequest, eth.JSONRPCError) {
+	//transform EthRequest fromBlock to HtmlcoinReq fromBlock:
+	from, err := getBlockNumberByRawParam(p.Htmlcoin, ethreq.FromBlock, true)
 	if err != nil {
 		return nil, err
 	}
 
-	//transform EthRequest toBlock to QtumReq toBlock:
-	to, err := getBlockNumberByRawParam(p.Qtum, ethreq.ToBlock, true)
+	//transform EthRequest toBlock to HtmlcoinReq toBlock:
+	to, err := getBlockNumberByRawParam(p.Htmlcoin, ethreq.ToBlock, true)
 	if err != nil {
 		return nil, err
 	}
 
-	//transform EthReq address to QtumReq address:
+	//transform EthReq address to HtmlcoinReq address:
 	var addresses []string
 	if ethreq.Address != nil {
 		if isBytesOfString(ethreq.Address) {
@@ -88,16 +88,16 @@ func (p *ProxyETHGetLogs) ToRequest(ethreq *eth.GetLogsRequest) (*qtum.SearchLog
 		}
 	}
 
-	//transform EthReq topics to QtumReq topics:
+	//transform EthReq topics to HtmlcoinReq topics:
 	topics, topicsErr := eth.TranslateTopics(ethreq.Topics)
 	if topicsErr != nil {
 		return nil, eth.NewCallbackError(topicsErr.Error())
 	}
 
-	return &qtum.SearchLogsRequest{
+	return &htmlcoin.SearchLogsRequest{
 		Addresses: addresses,
 		FromBlock: from,
 		ToBlock:   to,
-		Topics:    qtum.NewSearchLogsTopics(topics),
+		Topics:    htmlcoin.NewSearchLogsTopics(topics),
 	}, nil
 }
