@@ -7,14 +7,14 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetTransactionByHash implements ETHProxy
 type ProxyETHGetTransactionByHash struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetTransactionByHash) Method() string {
@@ -32,14 +32,14 @@ func (p *ProxyETHGetTransactionByHash) Request(req *eth.JSONRPCRequest, c echo.C
 		return nil, eth.NewInvalidParamsError("transaction hash is empty")
 	}
 
-	qtumReq := &qtum.GetTransactionRequest{
+	htmlcoinReq := &htmlcoin.GetTransactionRequest{
 		TxID: utils.RemoveHexPrefix(string(txHash)),
 	}
-	return p.request(qtumReq)
+	return p.request(htmlcoinReq)
 }
 
-func (p *ProxyETHGetTransactionByHash) request(req *qtum.GetTransactionRequest) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
-	ethTx, err := getTransactionByHash(p.Qtum, req.TxID)
+func (p *ProxyETHGetTransactionByHash) request(req *htmlcoin.GetTransactionRequest) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
+	ethTx, err := getTransactionByHash(p.Htmlcoin, req.TxID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,28 +47,28 @@ func (p *ProxyETHGetTransactionByHash) request(req *qtum.GetTransactionRequest) 
 }
 
 // TODO: think of returning flag if it's a reward transaction for miner
-func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
-	qtumTx, err := p.GetTransaction(hash)
+func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
+	htmlcoinTx, err := p.GetTransaction(hash)
 	var ethTx *eth.GetTransactionByHashResponse
 	if err != nil {
-		if errors.Cause(err) != qtum.ErrInvalidAddress {
+		if errors.Cause(err) != htmlcoin.ErrInvalidAddress {
 			return nil, eth.NewCallbackError(err.Error())
 		}
-		var rawQtumTx *qtum.GetRawTransactionResponse
-		ethTx, rawQtumTx, err = getRewardTransactionByHash(p, hash)
+		var rawHtmlcoinTx *htmlcoin.GetRawTransactionResponse
+		ethTx, rawHtmlcoinTx, err = getRewardTransactionByHash(p, hash)
 		if err != nil {
-			if errors.Cause(err) == qtum.ErrInvalidAddress {
+			if errors.Cause(err) == htmlcoin.ErrInvalidAddress {
 				return nil, nil
 			}
 			rawTx, err := p.GetRawTransaction(hash, false)
 			if err != nil {
-				if errors.Cause(err) == qtum.ErrInvalidAddress {
+				if errors.Cause(err) == htmlcoin.ErrInvalidAddress {
 					return nil, nil
 				}
 				return nil, eth.NewCallbackError(err.Error())
 			} else {
 				p.GetDebugLogger().Log("msg", "Got raw transaction by hash")
-				qtumTx = &qtum.GetTransactionResponse{
+				htmlcoinTx = &htmlcoin.GetTransactionResponse{
 					BlockHash:  rawTx.BlockHash,
 					BlockIndex: 1, // TODO: Possible to get this somewhere?
 					Hex:        rawTx.Hex,
@@ -76,22 +76,22 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 			}
 		} else {
 			p.GetDebugLogger().Log("msg", "Got reward transaction by hash")
-			qtumTx = &qtum.GetTransactionResponse{
-				Hex:       rawQtumTx.Hex,
-				BlockHash: rawQtumTx.BlockHash,
+			htmlcoinTx = &htmlcoin.GetTransactionResponse{
+				Hex:       rawHtmlcoinTx.Hex,
+				BlockHash: rawHtmlcoinTx.BlockHash,
 			}
 		}
 
 		// return ethTx, nil
 	}
-	qtumDecodedRawTx, err := p.DecodeRawTransaction(qtumTx.Hex)
+	htmlcoinDecodedRawTx, err := p.DecodeRawTransaction(htmlcoinTx.Hex)
 	if err != nil {
 		return nil, eth.NewCallbackError("couldn't get raw transaction")
 	}
 
 	if ethTx == nil {
 		ethTx = &eth.GetTransactionByHashResponse{
-			Hash:  utils.AddHexPrefix(qtumDecodedRawTx.ID),
+			Hash:  utils.AddHexPrefix(htmlcoinDecodedRawTx.ID),
 			Nonce: "0x0",
 
 			// TODO: researching
@@ -106,15 +106,15 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 		}
 	}
 
-	if !qtumTx.IsPending() { // otherwise, the following values must be nulls
-		blockNumber, err := getBlockNumberByHash(p, qtumTx.BlockHash)
+	if !htmlcoinTx.IsPending() { // otherwise, the following values must be nulls
+		blockNumber, err := getBlockNumberByHash(p, htmlcoinTx.BlockHash)
 		if err != nil {
 			return nil, eth.NewCallbackError("couldn't get block number by hash")
 		}
 		ethTx.BlockNumber = hexutil.EncodeUint64(blockNumber)
-		ethTx.BlockHash = utils.AddHexPrefix(qtumTx.BlockHash)
+		ethTx.BlockHash = utils.AddHexPrefix(htmlcoinTx.BlockHash)
 		if ethTx.TransactionIndex == "" {
-			ethTx.TransactionIndex = hexutil.EncodeUint64(uint64(qtumTx.BlockIndex))
+			ethTx.TransactionIndex = hexutil.EncodeUint64(uint64(htmlcoinTx.BlockIndex))
 		} else {
 			// Already set in getRewardTransactionByHash
 		}
@@ -122,7 +122,7 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 
 	if ethTx.Value == "" {
 		// TODO: This CalcAmount() func needs improvement
-		ethAmount, err := formatQtumAmount(qtumDecodedRawTx.CalcAmount())
+		ethAmount, err := formatHtmlcoinAmount(htmlcoinDecodedRawTx.CalcAmount())
 		if err != nil {
 			// TODO: Correct error code?
 			return nil, eth.NewInvalidParamsError("couldn't format amount")
@@ -130,40 +130,40 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 		ethTx.Value = ethAmount
 	}
 
-	qtumTxContractInfo, isContractTx, err := qtumDecodedRawTx.ExtractContractInfo()
+	htmlcoinTxContractInfo, isContractTx, err := htmlcoinDecodedRawTx.ExtractContractInfo()
 	if err != nil {
-		return nil, eth.NewCallbackError(qtumTx.Hex /*"couldn't extract contract info"*/)
+		return nil, eth.NewCallbackError(htmlcoinTx.Hex /*"couldn't extract contract info"*/)
 	}
 	if isContractTx {
-		// TODO: research is this allowed? ethTx.Input = utils.AddHexPrefix(qtumTxContractInfo.UserInput)
-		if qtumTxContractInfo.UserInput == "" {
+		// TODO: research is this allowed? ethTx.Input = utils.AddHexPrefix(htmlcoinTxContractInfo.UserInput)
+		if htmlcoinTxContractInfo.UserInput == "" {
 			ethTx.Input = "0x0"
 		} else {
-			ethTx.Input = utils.AddHexPrefix(qtumTxContractInfo.UserInput)
+			ethTx.Input = utils.AddHexPrefix(htmlcoinTxContractInfo.UserInput)
 		}
-		if qtumTxContractInfo.From != "" {
-			ethTx.From = utils.AddHexPrefix(qtumTxContractInfo.From)
+		if htmlcoinTxContractInfo.From != "" {
+			ethTx.From = utils.AddHexPrefix(htmlcoinTxContractInfo.From)
 		}
 		//TODO: research if 'To' adress could be other than zero address when 'isContractTx == TRUE'
-		if len(qtumTxContractInfo.To) == 0 {
-			ethTx.To = utils.AddHexPrefix(qtum.ZeroAddress)
+		if len(htmlcoinTxContractInfo.To) == 0 {
+			ethTx.To = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 		} else {
-			ethTx.To = utils.AddHexPrefix(qtumTxContractInfo.To)
+			ethTx.To = utils.AddHexPrefix(htmlcoinTxContractInfo.To)
 		}
-		ethTx.Gas = hexutil.Encode([]byte(qtumTxContractInfo.GasLimit))
-		ethTx.GasPrice = hexutil.Encode([]byte(qtumTxContractInfo.GasPrice))
+		ethTx.Gas = hexutil.Encode([]byte(htmlcoinTxContractInfo.GasLimit))
+		ethTx.GasPrice = hexutil.Encode([]byte(htmlcoinTxContractInfo.GasPrice))
 
 		return ethTx, nil
 	}
 
-	if qtumTx.Generated {
-		ethTx.From = utils.AddHexPrefix(qtum.ZeroAddress)
+	if htmlcoinTx.Generated {
+		ethTx.From = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 	} else {
 		// TODO: Figure out proper way to do this
 		// There is a problem with this function, sometimes it returns errors on regtest, empty block?
 		// commenting it out as its being overwritten below anyway
 		/*
-			ethTx.From, err = getNonContractTxSenderAddress(p, qtumDecodedRawTx.Vins)
+			ethTx.From, err = getNonContractTxSenderAddress(p, htmlcoinDecodedRawTx.Vins)
 			if err != nil {
 				return nil, eth.NewCallbackError("couldn't get non contract transaction sender address")
 			}
@@ -172,15 +172,15 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 		// ? Does func above return incorrect address for graph-node (len is < 40)
 		// ! Temporary solution
 		if ethTx.From == "" {
-			ethTx.From = utils.AddHexPrefix(qtum.ZeroAddress)
+			ethTx.From = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 		}
 	}
 	if ethTx.To == "" {
-		ethTx.To, err = findNonContractTxReceiverAddress(qtumDecodedRawTx.Vouts)
+		ethTx.To, err = findNonContractTxReceiverAddress(htmlcoinDecodedRawTx.Vouts)
 		if err != nil {
 			// TODO: discuss, research
 			// ? Some vouts doesn't have `receive` category at all
-			ethTx.To = utils.AddHexPrefix(qtum.ZeroAddress)
+			ethTx.To = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 
 			// TODO: uncomment, after todo above will be resolved
 			// return nil, errors.WithMessage(err, "couldn't get non contract transaction receiver address")
@@ -190,17 +190,17 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 	// ? Does func above return incorrect address for graph-node (len is < 40)
 	// ! Temporary solution
 	if ethTx.To == "" {
-		ethTx.To = utils.AddHexPrefix(qtum.ZeroAddress)
+		ethTx.To = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 	}
 
 	// TODO: researching
 	// ! Temporary solution
-	//	if len(qtumTx.Hex) == 0 {
+	//	if len(htmlcoinTx.Hex) == 0 {
 	//		ethTx.Input = "0x0"
 	//	} else {
-	//		ethTx.Input = utils.AddHexPrefix(qtumTx.Hex)
+	//		ethTx.Input = utils.AddHexPrefix(htmlcoinTx.Hex)
 	//	}
-	ethTx.Input = utils.AddHexPrefix(qtumTx.Hex)
+	ethTx.Input = utils.AddHexPrefix(htmlcoinTx.Hex)
 
 	return ethTx, nil
 }
@@ -208,8 +208,8 @@ func getTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashR
 // TODO: Does this need to return eth.JSONRPCError
 // TODO: discuss
 // ? There are `witness` transactions, that is not acquireable nither via `gettransaction`, nor `getrawtransaction`
-func getRewardTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionByHashResponse, *qtum.GetRawTransactionResponse, error) {
-	rawQtumTx, err := p.GetRawTransaction(hash, false)
+func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactionByHashResponse, *htmlcoin.GetRawTransactionResponse, error) {
+	rawHtmlcoinTx, err := p.GetRawTransaction(hash, false)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "couldn't get raw reward transaction")
 	}
@@ -236,26 +236,26 @@ func getRewardTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionB
 		S: "0x0",
 	}
 
-	if !rawQtumTx.IsPending() {
-		blockIndex, err := getTransactionIndexInBlock(p, hash, rawQtumTx.BlockHash)
+	if !rawHtmlcoinTx.IsPending() {
+		blockIndex, err := getTransactionIndexInBlock(p, hash, rawHtmlcoinTx.BlockHash)
 		if err != nil {
 			return nil, nil, errors.WithMessage(err, "couldn't get transaction index in block")
 		}
 		ethTx.TransactionIndex = hexutil.EncodeUint64(uint64(blockIndex))
 
-		blockNumber, err := getBlockNumberByHash(p, rawQtumTx.BlockHash)
+		blockNumber, err := getBlockNumberByHash(p, rawHtmlcoinTx.BlockHash)
 		if err != nil {
 			return nil, nil, errors.WithMessage(err, "couldn't get block number by hash")
 		}
 		ethTx.BlockNumber = hexutil.EncodeUint64(blockNumber)
 
-		ethTx.BlockHash = utils.AddHexPrefix(rawQtumTx.BlockHash)
+		ethTx.BlockHash = utils.AddHexPrefix(rawHtmlcoinTx.BlockHash)
 	}
 
-	for i := range rawQtumTx.Vouts {
+	for i := range rawHtmlcoinTx.Vouts {
 		// TODO: discuss
 		// ! The response may be null, even if txout is presented
-		_, err := p.GetTransactionOut(hash, i, rawQtumTx.IsPending())
+		_, err := p.GetTransactionOut(hash, i, rawHtmlcoinTx.IsPending())
 		if err != nil {
 			return nil, nil, errors.WithMessage(err, "couldn't get transaction out")
 		}
@@ -266,34 +266,34 @@ func getRewardTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionB
 
 	// TODO: discuss
 	// ? Do we have to set `from` == `0x00..00`
-	ethTx.From = utils.AddHexPrefix(qtum.ZeroAddress)
+	ethTx.From = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 
 	// I used Base58AddressToHex at the moment
-	// because convertQtumAddress functions causes error for
+	// because convertHtmlcoinAddress functions causes error for
 	// P2Sh address(such as MUrenj2sPqEVTiNbHQ2RARiZYyTAAeKiDX) and BECH32 address (such as qc1qkt33x6hkrrlwlr6v59wptwy6zskyrjfe40y0lx)
-	if rawQtumTx.OP_SENDER != "" {
-		// addr, err := convertQtumAddress(rawQtumTx.OP_SENDER)
-		addr, err := p.Base58AddressToHex(rawQtumTx.OP_SENDER)
+	if rawHtmlcoinTx.OP_SENDER != "" {
+		// addr, err := convertHtmlcoinAddress(rawHtmlcoinTx.OP_SENDER)
+		addr, err := p.Base58AddressToHex(rawHtmlcoinTx.OP_SENDER)
 		if err == nil {
 			ethTx.From = utils.AddHexPrefix(addr)
 		}
-	} else if len(rawQtumTx.Vins) > 0 && rawQtumTx.Vins[0].Address != "" {
-		// addr, err := convertQtumAddress(rawQtumTx.Vins[0].Address)
-		addr, err := p.Base58AddressToHex(rawQtumTx.Vins[0].Address)
+	} else if len(rawHtmlcoinTx.Vins) > 0 && rawHtmlcoinTx.Vins[0].Address != "" {
+		// addr, err := convertHtmlcoinAddress(rawHtmlcoinTx.Vins[0].Address)
+		addr, err := p.Base58AddressToHex(rawHtmlcoinTx.Vins[0].Address)
 		if err == nil {
 			ethTx.From = utils.AddHexPrefix(addr)
 		}
 	}
 	// TODO: discuss
 	// ? Where is a `to`
-	ethTx.To = utils.AddHexPrefix(qtum.ZeroAddress)
+	ethTx.To = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 
-	// when sending QTUM, the first vout will be the target
+	// when sending HTMLCOIN, the first vout will be the target
 	// the second will be change from the vin, it will be returned to the same account
-	if len(rawQtumTx.Vouts) >= 2 {
+	if len(rawHtmlcoinTx.Vouts) >= 2 {
 		from := ""
-		if len(rawQtumTx.Vins) > 0 {
-			from = rawQtumTx.Vins[0].Address
+		if len(rawHtmlcoinTx.Vins) > 0 {
+			from = rawHtmlcoinTx.Vins[0].Address
 		}
 
 		var valueIn int64
@@ -302,13 +302,13 @@ func getRewardTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionB
 		var sent int64
 		var sentTo int64
 
-		for _, vin := range rawQtumTx.Vins {
+		for _, vin := range rawHtmlcoinTx.Vins {
 			valueIn += vin.AmountSatoshi
 		}
 
 		var to string
 
-		for _, vout := range rawQtumTx.Vouts {
+		for _, vout := range rawHtmlcoinTx.Vouts {
 			valueOut += vout.AmountSatoshi
 			addressesCount := len(vout.Details.Addresses)
 			if addressesCount > 0 && vout.Details.Addresses[0] == from {
@@ -353,5 +353,5 @@ func getRewardTransactionByHash(p *qtum.Qtum, hash string) (*eth.GetTransactionB
 		// TODO: compute gasPrice based on fee, guess a gas amount based on vin/vout
 	}
 
-	return ethTx, rawQtumTx, nil
+	return ethTx, rawHtmlcoinTx, nil
 }
