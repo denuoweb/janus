@@ -2,14 +2,14 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHAccounts implements ETHProxy
 type ProxyETHAccounts struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHAccounts) Method() string {
@@ -24,7 +24,7 @@ func (p *ProxyETHAccounts) request() (eth.AccountsResponse, eth.JSONRPCError) {
 	var accounts eth.AccountsResponse
 
 	for _, acc := range p.Accounts {
-		acc := qtum.Account{acc}
+		acc := htmlcoin.Account{acc}
 		addr := acc.ToHexAddress()
 
 		accounts = append(accounts, utils.AddHexPrefix(addr))
@@ -33,8 +33,8 @@ func (p *ProxyETHAccounts) request() (eth.AccountsResponse, eth.JSONRPCError) {
 	return accounts, nil
 }
 
-func (p *ProxyETHAccounts) ToResponse(ethresp *qtum.CallContractResponse) *eth.CallResponse {
+func (p *ProxyETHAccounts) ToResponse(ethresp *htmlcoin.CallContractResponse) *eth.CallResponse {
 	data := utils.AddHexPrefix(ethresp.ExecutionResult.Output)
-	qtumresp := eth.CallResponse(data)
-	return &qtumresp
+	htmlcoinresp := eth.CallResponse(data)
+	return &htmlcoinresp
 }
