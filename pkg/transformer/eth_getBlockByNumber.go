@@ -4,13 +4,13 @@ import (
 	"math/big"
 
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // ProxyETHGetBlockByNumber implements ETHProxy
 type ProxyETHGetBlockByNumber struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetBlockByNumber) Method() string {
@@ -27,12 +27,12 @@ func (p *ProxyETHGetBlockByNumber) Request(rpcReq *eth.JSONRPCRequest, c echo.Co
 }
 
 func (p *ProxyETHGetBlockByNumber) request(req *eth.GetBlockByNumberRequest) (*eth.GetBlockByNumberResponse, eth.JSONRPCError) {
-	blockNum, err := getBlockNumberByRawParam(p.Qtum, req.BlockNumber, false)
+	blockNum, err := getBlockNumberByRawParam(p.Htmlcoin, req.BlockNumber, false)
 	if err != nil {
 		return nil, eth.NewCallbackError("couldn't get block number by parameter")
 	}
 
-	blockHash, jsonErr := proxyETHGetBlockByHash(p, p.Qtum, blockNum)
+	blockHash, jsonErr := proxyETHGetBlockByHash(p, p.Htmlcoin, blockNum)
 	if jsonErr != nil {
 		return nil, jsonErr
 	}
@@ -45,7 +45,7 @@ func (p *ProxyETHGetBlockByNumber) request(req *eth.GetBlockByNumberRequest) (*e
 			BlockHash:       string(*blockHash),
 			FullTransaction: req.FullTransaction,
 		}
-		proxy = &ProxyETHGetBlockByHash{Qtum: p.Qtum}
+		proxy = &ProxyETHGetBlockByHash{Htmlcoin: p.Htmlcoin}
 	)
 	block, jsonErr := proxy.request(getBlockByHashReq)
 	if jsonErr != nil {
@@ -59,10 +59,10 @@ func (p *ProxyETHGetBlockByNumber) request(req *eth.GetBlockByNumberRequest) (*e
 }
 
 // Properly handle unknown blocks
-func proxyETHGetBlockByHash(p ETHProxy, q *qtum.Qtum, blockNum *big.Int) (*qtum.GetBlockHashResponse, eth.JSONRPCError) {
+func proxyETHGetBlockByHash(p ETHProxy, q *htmlcoin.Htmlcoin, blockNum *big.Int) (*htmlcoin.GetBlockHashResponse, eth.JSONRPCError) {
 	resp, err := q.GetBlockHash(blockNum)
 	if err != nil {
-		if err == qtum.ErrInvalidParameter {
+		if err == htmlcoin.ErrInvalidParameter {
 			// block doesn't exist, ETH rpc returns null
 			/**
 			{
