@@ -5,14 +5,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
-	"github.com/qtumproject/janus/pkg/utils"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/htmlcoin/janus/pkg/utils"
 )
 
 // ProxyETHGetBlockByHash implements ETHProxy
 type ProxyETHGetBlockByHash struct {
-	*qtum.Qtum
+	*htmlcoin.Htmlcoin
 }
 
 func (p *ProxyETHGetBlockByHash) Method() string {
@@ -33,7 +33,7 @@ func (p *ProxyETHGetBlockByHash) Request(rawreq *eth.JSONRPCRequest, c echo.Cont
 func (p *ProxyETHGetBlockByHash) request(req *eth.GetBlockByHashRequest) (*eth.GetBlockByHashResponse, eth.JSONRPCError) {
 	blockHeader, err := p.GetBlockHeader(req.BlockHash)
 	if err != nil {
-		if err == qtum.ErrInvalidAddress {
+		if err == htmlcoin.ErrInvalidAddress {
 			// unknown block hash should return {result: null}
 			p.GetDebugLogger().Log("msg", "Unknown block hash", "blockHash", req.BlockHash)
 			return nil, nil
@@ -52,7 +52,7 @@ func (p *ProxyETHGetBlockByHash) request(req *eth.GetBlockByHashRequest) (*eth.G
 	resp := &eth.GetBlockByHashResponse{
 		// TODO: researching
 		// * If ETH block has pending status, then the following values must be null
-		// ? Is it possible case for Qtum
+		// ? Is it possible case for Htmlcoin
 		Hash:   utils.AddHexPrefix(req.BlockHash),
 		Number: hexutil.EncodeUint64(uint64(block.Height)),
 
@@ -96,7 +96,7 @@ func (p *ProxyETHGetBlockByHash) request(req *eth.GetBlockByHashRequest) (*eth.G
 
 	if blockHeader.IsGenesisBlock() {
 		resp.ParentHash = "0x0000000000000000000000000000000000000000000000000000000000000000"
-		resp.Miner = utils.AddHexPrefix(qtum.ZeroAddress)
+		resp.Miner = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 	} else {
 		resp.ParentHash = utils.AddHexPrefix(blockHeader.Previousblockhash)
 		// ! Not found
@@ -115,12 +115,12 @@ func (p *ProxyETHGetBlockByHash) request(req *eth.GetBlockByHashRequest) (*eth.G
 	// ! Found only for contracts transactions
 	// As there is no gas values presented at common block info, we set
 	// gas limit value equalling to default gas limit of a block
-	resp.GasLimit = utils.AddHexPrefix(qtum.DefaultBlockGasLimit)
+	resp.GasLimit = utils.AddHexPrefix(htmlcoin.DefaultBlockGasLimit)
 	resp.GasUsed = "0x0"
 
 	if req.FullTransaction {
 		for _, txHash := range block.Txs {
-			tx, err := getTransactionByHash(p.Qtum, txHash)
+			tx, err := getTransactionByHash(p.Htmlcoin, txHash)
 			if err != nil {
 				p.GetDebugLogger().Log("msg", "Couldn't get transaction by hash", "hash", txHash)
 				return nil, eth.NewCallbackError("couldn't get transaction by hash")
@@ -132,7 +132,7 @@ func (p *ProxyETHGetBlockByHash) request(req *eth.GetBlockByHashRequest) (*eth.G
 					p.GetDebugLogger().Log("msg", "Failed to get transaction in genesis block, probably the coinbase which we can't get")
 				} else {
 					p.GetDebugLogger().Log("msg", "Failed to get transaction by hash included in a block", "hash", txHash)
-					if !p.GetFlagBool(qtum.FLAG_IGNORE_UNKNOWN_TX) {
+					if !p.GetFlagBool(htmlcoin.FLAG_IGNORE_UNKNOWN_TX) {
 						return nil, eth.NewCallbackError("couldn't get transaction by hash included in a block")
 					}
 				}
@@ -147,7 +147,7 @@ func (p *ProxyETHGetBlockByHash) request(req *eth.GetBlockByHashRequest) (*eth.G
 			// NOTE:
 			// 	Etherium RPC API doc says, that tx hashes must be of [32]byte,
 			// 	however it doesn't seem to be correct, 'cause Etherium tx hash
-			// 	has [64]byte just like Qtum tx hash has. In this case we do no
+			// 	has [64]byte just like Htmlcoin tx hash has. In this case we do no
 			// 	additional convertations now, while everything works fine
 			resp.Transactions = append(resp.Transactions, utils.AddHexPrefix(txHash))
 		}
