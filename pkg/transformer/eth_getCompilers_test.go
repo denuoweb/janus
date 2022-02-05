@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/internal"
 )
 
 func TestGetCompilersReturnsEmptyArray(t *testing.T) {
