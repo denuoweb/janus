@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 // 22000
@@ -35,7 +35,7 @@ func (p *ProxyETHEstimateGas) Request(rawreq *eth.JSONRPCRequest, c echo.Context
 		return &response, nil
 	}
 
-	// when supplying this parameter to callcontract to estimate gas in the qtum api
+	// when supplying this parameter to callcontract to estimate gas in the htmlcoin api
 	// if there isn't enough gas specified here, the result will be an exception
 	// Excepted = "OutOfGasIntrinsic"
 	// Gas = "the supplied value"
@@ -44,26 +44,26 @@ func (p *ProxyETHEstimateGas) Request(rawreq *eth.JSONRPCRequest, c echo.Context
 	// so we set this to nil so that callcontract will return the actual gas estimate
 	ethreq.Gas = nil
 
-	// eth req -> qtum req
-	qtumreq, jsonErr := p.ToRequest(&ethreq)
+	// eth req -> htmlcoin req
+	htmlcoinreq, jsonErr := p.ToRequest(&ethreq)
 	if jsonErr != nil {
 		return nil, jsonErr
 	}
 
-	// qtum [code: -5] Incorrect address occurs here
-	qtumresp, err := p.CallContract(qtumreq)
+	// htmlcoin [code: -5] Incorrect address occurs here
+	htmlcoinresp, err := p.CallContract(htmlcoinreq)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	return p.toResp(qtumresp)
+	return p.toResp(htmlcoinresp)
 }
 
-func (p *ProxyETHEstimateGas) toResp(qtumresp *qtum.CallContractResponse) (*eth.EstimateGasResponse, eth.JSONRPCError) {
-	if qtumresp.ExecutionResult.Excepted != "None" {
+func (p *ProxyETHEstimateGas) toResp(htmlcoinresp *htmlcoin.CallContractResponse) (*eth.EstimateGasResponse, eth.JSONRPCError) {
+	if htmlcoinresp.ExecutionResult.Excepted != "None" {
 		return nil, eth.NewCallbackError(ErrExecutionReverted.Error())
 	}
-	gas := eth.EstimateGasResponse(hexutil.EncodeUint64(uint64(float64(qtumresp.ExecutionResult.GasUsed) * GAS_BUFFER)))
+	gas := eth.EstimateGasResponse(hexutil.EncodeUint64(uint64(float64(htmlcoinresp.ExecutionResult.GasUsed) * GAS_BUFFER)))
 	p.GetDebugLogger().Log(p.Method(), gas)
 	return &gas, nil
 }
