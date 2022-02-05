@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestEthCallRequest(t *testing.T) {
@@ -25,10 +25,10 @@ func TestEthCallRequest(t *testing.T) {
 	requestRPC, err := internal.PrepareEthRPCRequest(1, requestParamsArray)
 
 	clientDoerMock := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(clientDoerMock)
+	htmlcoinClient, err := internal.CreateMockedClient(clientDoerMock)
 
 	//preparing response
-	callContractResponse := qtum.CallContractResponse{
+	callContractResponse := htmlcoin.CallContractResponse{
 		Address: "1e6f89d7399081b4f8f8aa1ae2805a5efff2f960",
 		ExecutionResult: struct {
 			GasUsed         int    `json:"gasUsed"`
@@ -57,19 +57,19 @@ func TestEthCallRequest(t *testing.T) {
 			Bloom:     "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		},
 	}
-	err = clientDoerMock.AddResponseWithRequestID(1, qtum.MethodCallContract, callContractResponse)
+	err = clientDoerMock.AddResponseWithRequestID(1, htmlcoin.MethodCallContract, callContractResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fromHexAddressResponse := qtum.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
-	err = clientDoerMock.AddResponseWithRequestID(2, qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
+	err = clientDoerMock.AddResponseWithRequestID(2, htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing
-	proxyEth := ProxyETHCall{qtumClient}
+	proxyEth := ProxyETHCall{htmlcoinClient}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,10 +104,10 @@ func TestRetry(t *testing.T) {
 	requestRPC, err := internal.PrepareEthRPCRequest(1, requestParamsArray)
 
 	clientDoerMock := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(clientDoerMock)
+	htmlcoinClient, err := internal.CreateMockedClient(clientDoerMock)
 
 	//preparing response
-	callContractResponse := qtum.CallContractResponse{
+	callContractResponse := htmlcoin.CallContractResponse{
 		Address: "1e6f89d7399081b4f8f8aa1ae2805a5efff2f960",
 		ExecutionResult: struct {
 			GasUsed         int    `json:"gasUsed"`
@@ -137,21 +137,21 @@ func TestRetry(t *testing.T) {
 		},
 	}
 
-	// return QTUM is busy response 4 times
+	// return HTMLCOIN is busy response 4 times
 	for i := 0; i < 4; i++ {
-		clientDoerMock.AddRawResponse(qtum.MethodCallContract, []byte(qtum.ErrQtumWorkQueueDepth.Error()))
+		clientDoerMock.AddRawResponse(htmlcoin.MethodCallContract, []byte(htmlcoin.ErrHtmlcoinWorkQueueDepth.Error()))
 	}
 	// on 5th request, return correct value
-	clientDoerMock.AddResponseWithRequestID(1, qtum.MethodCallContract, callContractResponse)
+	clientDoerMock.AddResponseWithRequestID(1, htmlcoin.MethodCallContract, callContractResponse)
 
-	fromHexAddressResponse := qtum.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
-	err = clientDoerMock.AddResponseWithRequestID(2, qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
+	err = clientDoerMock.AddResponseWithRequestID(2, htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing
-	proxyEth := ProxyETHCall{qtumClient}
+	proxyEth := ProxyETHCall{htmlcoinClient}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,23 +194,23 @@ func TestEthCallRequestOnUnknownContract(t *testing.T) {
 	requestRPC, err := internal.PrepareEthRPCRequest(1, requestParamsArray)
 
 	clientDoerMock := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(clientDoerMock)
+	htmlcoinClient, err := internal.CreateMockedClient(clientDoerMock)
 
-	fromHexAddressResponse := qtum.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
-	err = clientDoerMock.AddResponse(qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
+	err = clientDoerMock.AddResponse(htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing error response
-	unknownAddressResponse := qtum.GetErrorResponse(qtum.ErrInvalidAddress)
-	err = clientDoerMock.AddError(qtum.MethodCallContract, unknownAddressResponse)
+	unknownAddressResponse := htmlcoin.GetErrorResponse(htmlcoin.ErrInvalidAddress)
+	err = clientDoerMock.AddError(htmlcoin.MethodCallContract, unknownAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing
-	proxyEth := ProxyETHCall{qtumClient}
+	proxyEth := ProxyETHCall{htmlcoinClient}
 	if err != nil {
 		t.Fatal(err)
 	}
