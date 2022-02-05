@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestGetBalanceRequestAccount(t *testing.T) {
@@ -19,7 +19,7 @@ func TestGetBalanceRequestAccount(t *testing.T) {
 	}
 	//prepare client
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,17 +29,17 @@ func TestGetBalanceRequestAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	qtumClient.Accounts = append(qtumClient.Accounts, account)
+	htmlcoinClient.Accounts = append(htmlcoinClient.Accounts, account)
 
 	//prepare responses
-	fromHexAddressResponse := qtum.FromHexAddressResponse("5JK4Gu9nxCvsCxiq9Zf3KdmA9ACza6dUn5BRLVWAYEtQabdnJ89")
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("5JK4Gu9nxCvsCxiq9Zf3KdmA9ACza6dUn5BRLVWAYEtQabdnJ89")
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	getAddressBalanceResponse := qtum.GetAddressBalanceResponse{Balance: uint64(100000000), Received: uint64(100000000), Immature: int64(0)}
-	err = mockedClientDoer.AddResponseWithRequestID(3, qtum.MethodGetAddressBalance, getAddressBalanceResponse)
+	getAddressBalanceResponse := htmlcoin.GetAddressBalanceResponse{Balance: uint64(100000000), Received: uint64(100000000), Immature: int64(0)}
+	err = mockedClientDoer.AddResponseWithRequestID(3, htmlcoin.MethodGetAddressBalance, getAddressBalanceResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,13 +49,13 @@ func TestGetBalanceRequestAccount(t *testing.T) {
 	// then address is contract, else account
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetBalance{qtumClient}
+	proxyEth := ProxyETHGetBalance{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(requestRPC, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
-	want := string("0xde0b6b3a7640000") //1 Qtum represented in Wei
+	want := string("0xde0b6b3a7640000") //1 Htmlcoin represented in Wei
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf(
 			"error\ninput: %s\nwant: %s\ngot: %s",
@@ -75,7 +75,7 @@ func TestGetBalanceRequestContract(t *testing.T) {
 	}
 	//prepare client
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,22 +85,22 @@ func TestGetBalanceRequestContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	qtumClient.Accounts = append(qtumClient.Accounts, account)
+	htmlcoinClient.Accounts = append(htmlcoinClient.Accounts, account)
 
 	//prepare responses
-	getAccountInfoResponse := qtum.GetAccountInfoResponse{
+	getAccountInfoResponse := htmlcoin.GetAccountInfoResponse{
 		Address: "1e6f89d7399081b4f8f8aa1ae2805a5efff2f960",
 		Balance: 12431243,
 		// Storage json.RawMessage `json:"storage"`,
 		// Code    string          `json:"code"`,
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(3, qtum.MethodGetAccountInfo, getAccountInfoResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(3, htmlcoin.MethodGetAccountInfo, getAccountInfoResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHGetBalance{qtumClient}
+	proxyEth := ProxyETHGetBalance{htmlcoinClient}
 	got, jsonErr := proxyEth.Request(requestRPC, nil)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
