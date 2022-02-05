@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qtumproject/janus/pkg/eth"
-	"github.com/qtumproject/janus/pkg/internal"
-	"github.com/qtumproject/janus/pkg/qtum"
+	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/htmlcoin/janus/pkg/htmlcoin"
 )
 
 func TestEstimateGasRequest(t *testing.T) {
@@ -28,19 +28,19 @@ func TestEstimateGasRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing responses
-	fromHexAddressResponse := qtum.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	callContractResponse := qtum.CallContractResponse{
+	callContractResponse := htmlcoin.CallContractResponse{
 		Address: "1e6f89d7399081b4f8f8aa1ae2805a5efff2f960",
 		ExecutionResult: struct {
 			GasUsed         int    `json:"gasUsed"`
@@ -57,13 +57,13 @@ func TestEstimateGasRequest(t *testing.T) {
 			Excepted: "None",
 		},
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(1, qtum.MethodCallContract, callContractResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(1, htmlcoin.MethodCallContract, callContractResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHCall{qtumClient}
+	proxyEth := ProxyETHCall{htmlcoinClient}
 	proxyEthEstimateGas := ProxyETHEstimateGas{&proxyEth}
 	got, jsonErr := proxyEthEstimateGas.Request(requestRPC, nil)
 	if jsonErr != nil {
@@ -99,19 +99,19 @@ func TestEstimateGasRequestExecutionReverted(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing responses
-	fromHexAddressResponse := qtum.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	callContractResponse := qtum.CallContractResponse{
+	callContractResponse := htmlcoin.CallContractResponse{
 		Address: "1e6f89d7399081b4f8f8aa1ae2805a5efff2f960",
 		ExecutionResult: struct {
 			GasUsed         int    `json:"gasUsed"`
@@ -128,13 +128,13 @@ func TestEstimateGasRequestExecutionReverted(t *testing.T) {
 			Excepted: "OutOfGas",
 		},
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(1, qtum.MethodCallContract, callContractResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(1, htmlcoin.MethodCallContract, callContractResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHCall{qtumClient}
+	proxyEth := ProxyETHCall{htmlcoinClient}
 	proxyEthEstimateGas := ProxyETHEstimateGas{&proxyEth}
 	_, got := proxyEthEstimateGas.Request(requestRPC, nil)
 	if got == nil {
@@ -169,19 +169,19 @@ func TestEstimateGasNonVMRequest(t *testing.T) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	qtumClient, err := internal.CreateMockedClient(mockedClientDoer)
+	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing responses
-	fromHexAddressResponse := qtum.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
-	err = mockedClientDoer.AddResponseWithRequestID(2, qtum.MethodFromHexAddress, fromHexAddressResponse)
+	fromHexAddressResponse := htmlcoin.FromHexAddressResponse("0x1e6f89d7399081b4f8f8aa1ae2805a5efff2f960")
+	err = mockedClientDoer.AddResponseWithRequestID(2, htmlcoin.MethodFromHexAddress, fromHexAddressResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	callContractResponse := qtum.CallContractResponse{
+	callContractResponse := htmlcoin.CallContractResponse{
 		Address: "1e6f89d7399081b4f8f8aa1ae2805a5efff2f960",
 		ExecutionResult: struct {
 			GasUsed         int    `json:"gasUsed"`
@@ -198,13 +198,13 @@ func TestEstimateGasNonVMRequest(t *testing.T) {
 			Excepted: "None",
 		},
 	}
-	err = mockedClientDoer.AddResponseWithRequestID(1, qtum.MethodCallContract, callContractResponse)
+	err = mockedClientDoer.AddResponseWithRequestID(1, htmlcoin.MethodCallContract, callContractResponse)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//preparing proxy & executing request
-	proxyEth := ProxyETHCall{qtumClient}
+	proxyEth := ProxyETHCall{htmlcoinClient}
 	proxyEthEstimateGas := ProxyETHEstimateGas{&proxyEth}
 	got, jsonErr := proxyEthEstimateGas.Request(requestRPC, nil)
 	if jsonErr != nil {
