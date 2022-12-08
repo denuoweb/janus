@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/go-kit/log"
-	"github.com/htmlcoin/ethereum-block-processor/cache"
-	"github.com/htmlcoin/ethereum-block-processor/db"
-	"github.com/htmlcoin/ethereum-block-processor/dispatcher"
-	"github.com/htmlcoin/ethereum-block-processor/eth"
-	"github.com/htmlcoin/ethereum-block-processor/jsonrpc"
-	blockHashLog "github.com/htmlcoin/ethereum-block-processor/log"
+	"github.com/qtumproject/ethereum-block-processor/cache"
+	"github.com/qtumproject/ethereum-block-processor/db"
+	"github.com/qtumproject/ethereum-block-processor/dispatcher"
+	"github.com/qtumproject/ethereum-block-processor/eth"
+	"github.com/qtumproject/ethereum-block-processor/jsonrpc"
+	blockHashLog "github.com/qtumproject/ethereum-block-processor/log"
 )
 
 var ErrDatabaseNotConfigured = errors.New("database not connected")
