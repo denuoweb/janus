@@ -24,7 +24,7 @@ func (p *ProxyETHBlockNumber) Request(_ *eth.JSONRPCRequest, c echo.Context) (in
 }
 
 func (p *ProxyETHBlockNumber) request(c echo.Context, retries int) (*eth.BlockNumberResponse, eth.JSONRPCError) {
-	htmlcoinresp, err := p.Htmlcoin.GetBlockCount()
+	htmlcoinresp, err := p.Htmlcoin.GetBlockCount(c.Request().Context())
 	if err != nil {
 		if retries > 0 && strings.Contains(err.Error(), htmlcoin.ErrTryAgain.Error()) {
 			ctx := c.Request().Context()

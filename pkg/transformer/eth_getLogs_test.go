@@ -1,8 +1,8 @@
 package transformer
 
 import (
+	"context"
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -264,7 +264,7 @@ func TestMultipleLogsWithORdTopics(t *testing.T) {
 	//preparing proxy & executing
 	proxyEth := ProxyETHGetLogs{htmlcoinClient}
 
-	got, jsonErr := proxyEth.Request(requestRPC, nil)
+	got, jsonErr := proxyEth.Request(requestRPC, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
@@ -325,14 +325,7 @@ func TestMultipleLogsWithORdTopics(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			requestRPC,
-			string(internal.MustMarshalIndent(want, "", "  ")),
-			string(internal.MustMarshalIndent(got, "", "  ")),
-		)
-	}
+	internal.CheckTestResultEthRequestRPC(*requestRPC, &want, got, t, false)
 }
 
 func testGetLogsWithTopics(t *testing.T, topics []interface{}, want eth.GetLogsResponse) {
@@ -400,19 +393,12 @@ func testGetLogsWithTopics(t *testing.T, topics []interface{}, want eth.GetLogsR
 	//preparing proxy & executing
 	proxyEth := ProxyETHGetLogs{htmlcoinClient}
 
-	got, jsonErr := proxyEth.Request(requestRPC, nil)
+	got, jsonErr := proxyEth.Request(requestRPC, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			requestRPC,
-			string(internal.MustMarshalIndent(want, "", "  ")),
-			string(internal.MustMarshalIndent(got, "", "  ")),
-		)
-	}
+	internal.CheckTestResultEthRequestRPC(*requestRPC, &want, got, t, false)
 }
 
 func TestGetLogsTranslateTopicWorksWithNil(t *testing.T) {
@@ -451,7 +437,7 @@ func TestGetLogsTranslateTopicWorksWithNil(t *testing.T) {
 	//preparing proxy & executing
 	proxyEth := ProxyETHGetLogs{htmlcoinClient}
 
-	htmlcoinRequest, jsonErr := proxyEth.ToRequest(&request)
+	htmlcoinRequest, jsonErr := proxyEth.ToRequest(context.Background(), &request)
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
@@ -463,12 +449,5 @@ func TestGetLogsTranslateTopicWorksWithNil(t *testing.T) {
 
 	expectedRawRequest := `[4062,4062,{"addresses":["db46f738bf32cdafb9a4a70eb8b44c76646bcaf0"]},{"topics":["0f6798a560793a54c3bcfe86a93cde1e73087d944c0ea20544137d4121396885",null]}]`
 
-	if expectedRawRequest != string(htmlcoinRawRequest) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			htmlcoinRawRequest,
-			string(internal.MustMarshalIndent(expectedRawRequest, "", "  ")),
-			string(internal.MustMarshalIndent(string(htmlcoinRawRequest), "", "  ")),
-		)
-	}
+	internal.CheckTestResultEthRequestLog(request, expectedRawRequest, string(htmlcoinRawRequest), t, false)
 }

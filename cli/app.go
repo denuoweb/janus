@@ -11,6 +11,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/htmlcoin/janus/pkg/analytics"
 	"github.com/htmlcoin/janus/pkg/notifier"
 	"github.com/htmlcoin/janus/pkg/params"
 	"github.com/htmlcoin/janus/pkg/htmlcoin"
@@ -33,6 +34,15 @@ var (
 	httpsCert           = app.Flag("https-cert", "https certificate").Default("").String()
 	logFile             = app.Flag("log-file", "write logs to a file").Envar("LOG_FILE").Default("").String()
 	matureBlockHeight   = app.Flag("mature-block-height-override", "override how old a coinbase/coinstake needs to be to be considered mature enough for spending (HTMLCOIN uses 500 blocks) - if this value is incorrect transactions can be rejected").Int()
+
+	sqlHost     = app.Flag("sql-host", "database hostname").Envar("SQL_HOST").Default("127.0.0.1").String()
+	sqlPort     = app.Flag("sql-port", "database port").Envar("SQL_PORT").Default("5432").Int()
+	sqlUser     = app.Flag("sql-user", "database username").Envar("SQL_USER").Default("postgres").String()
+	sqlPassword = app.Flag("sql-password", "database password").Envar("SQL_PASSWORD").Default("dbpass").String()
+	sqlSSL      = app.Flag("sql-ssl", "use SSL to connect to database").Envar("SQL_SSL").Bool()
+	sqlDbname   = app.Flag("sql-dbname", "database name").Envar("SQL_DBNAME").Default("postgres").String()
+
+	dbConnectionString = app.Flag("dbstring", "database connection string").String()
 
 	devMode        = app.Flag("dev", "[Insecure] Developer mode").Envar("DEV").Default("false").Bool()
 	singleThreaded = app.Flag("singleThreaded", "[Non-production] Process RPC requests in a single thread").Envar("SINGLE_THREADED").Default("false").Bool()
@@ -107,6 +117,11 @@ func action(pc *kingpin.ParseContext) error {
 
 	isMain := *htmlcoinNetwork == htmlcoin.ChainMain
 
+	ctx, shutdownHtmlcoin := context.WithCancel(context.Background())
+	defer shutdownHtmlcoin()
+
+	htmlcoinRequestAnalytics := analytics.NewAnalytics(50)
+
 	htmlcoinJSONRPC, err := htmlcoin.NewClient(
 		isMain,
 		*htmlcoinRPC,
@@ -119,7 +134,15 @@ func action(pc *kingpin.ParseContext) error {
 		htmlcoin.SetDisableSnippingHtmlcoinRpcOutput(*disableSnipping),
 		htmlcoin.SetHideHtmlcoindLogs(*hideHtmlcoindLogs),
 		htmlcoin.SetMatureBlockHeight(matureBlockHeight),
-		htmlcoin.SetContext(context.Background()),
+		htmlcoin.SetContext(ctx),
+		htmlcoin.SetSqlHost(*sqlHost),
+		htmlcoin.SetSqlPort(*sqlPort),
+		htmlcoin.SetSqlUser(*sqlUser),
+		htmlcoin.SetSqlPassword(*sqlPassword),
+		htmlcoin.SetSqlSSL(*sqlSSL),
+		htmlcoin.SetSqlDatabaseName(*sqlDbname),
+		htmlcoin.SetSqlConnectionString(*dbConnectionString),
+		htmlcoin.SetAnalytics(htmlcoinRequestAnalytics),
 	)
 	if err != nil {
 		return errors.Wrap(err, "Failed to setup HTMLCOIN client")
@@ -155,6 +178,7 @@ func action(pc *kingpin.ParseContext) error {
 		server.SetDebug(*devMode),
 		server.SetSingleThreaded(*singleThreaded),
 		server.SetHttps(httpsKeyFile, httpsCertFile),
+		server.SetHtmlcoinAnalytics(htmlcoinRequestAnalytics),
 	)
 	if err != nil {
 		return errors.Wrap(err, "server#New")

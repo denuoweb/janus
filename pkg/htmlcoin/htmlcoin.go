@@ -1,8 +1,10 @@
 package htmlcoin
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"math"
 	"strings"
 	"sync"
@@ -19,6 +21,8 @@ type Htmlcoin struct {
 	queryingChain    bool
 	queryingComplete chan bool
 	chain            string
+
+	errorState *errorState
 }
 
 const (
@@ -37,12 +41,20 @@ func New(c *Client, chain string) (*Htmlcoin, error) {
 	}
 
 	htmlcoin := &Htmlcoin{
-		Client: c,
-		Method: &Method{Client: c},
-		chain:  chain,
+		Client:     c,
+		Method:     &Method{Client: c},
+		chain:      chain,
+		errorState: newErrorState(),
 	}
 
-	go htmlcoin.detectChain()
+	c.SetErrorHandler(func(ctx context.Context, err error) error {
+		if errorHandler, ok := errorHandlers[err]; ok {
+			return errorHandler(ctx, htmlcoin.errorState, htmlcoin.Method)
+		}
+		return nil
+	})
+
+	htmlcoin.detectChain()
 
 	return htmlcoin, nil
 }
@@ -55,35 +67,47 @@ func (c *Htmlcoin) detectChain() {
 		return
 	}
 	c.queryingChain = true
-	c.queryingComplete = make(chan bool)
+	c.queryingComplete = make(chan bool, 1000)
 	c.chainMutex.Unlock()
 
+	go c.detectingChain()
+}
+
+func (c *Htmlcoin) detectingChain() {
 	// detect chain we are pointing at
 	for i := 0; ; i++ {
-		blockchainInfo, err := c.GetBlockChainInfo()
+		blockchainInfo, err := c.GetBlockChainInfo(c.ctx)
 		if err == nil {
 			chain := strings.ToLower(blockchainInfo.Chain)
-			if utils.InStrSlice(AllChains, chain) {
-				c.chainMutex.Lock()
-				c.chain = chain
-				c.queryingChain = false
-				if c.queryingComplete != nil {
-					queryingComplete := c.queryingComplete
-					c.queryingComplete = nil
-					close(queryingComplete)
-				}
-				c.chainMutex.Unlock()
-				c.GetDebugLogger().Log("msg", "Detected chain type", "chain", chain)
-				return
-			} else {
-				c.GetErrorLogger().Log("msg", "Unknown chain type in getblockchaininfo", "chain", chain)
+			c.chainMutex.Lock()
+			c.chain = chain
+			c.queryingChain = false
+			if c.queryingComplete != nil {
+				queryingComplete := c.queryingComplete
+				c.queryingComplete = nil
+				close(queryingComplete)
 			}
+			c.chainMutex.Unlock()
+			c.GetDebugLogger().Log("msg", "Detected chain type", "chain", chain)
+			return
 		}
 
 		interval := 250 * time.Millisecond
 		backoff := time.Duration(math.Min(float64(i), 10)) * interval
 		c.GetDebugLogger().Log("msg", "Failed to detect chain type, backing off", "backoff", backoff)
-		time.Sleep(backoff)
+		// TODO check if this works as expected
+		// time.Sleep(backoff)
+		var done <-chan struct{}
+		if c.ctx != nil {
+			done = c.ctx.Done()
+		} else {
+			done = context.Background().Done()
+		}
+		select {
+		case <-time.After(backoff):
+		case <-done:
+			return
+		}
 	}
 }
 
@@ -91,11 +115,15 @@ func (c *Htmlcoin) Chain() string {
 	c.chainMutex.RLock()
 	queryingChain := c.queryingChain
 	queryingComplete := c.queryingComplete
+	ctx := c.ctx
 	c.chainMutex.RUnlock()
 
 	if queryingChain && queryingComplete != nil {
+		if ctx == nil {
+			ctx = context.Background()
+		}
 		select {
-		case <-c.ctx.Done():
+		case <-ctx.Done():
 		case <-queryingComplete:
 		}
 	}
@@ -104,6 +132,23 @@ func (c *Htmlcoin) Chain() string {
 	defer c.chainMutex.RUnlock()
 
 	return c.chain
+}
+
+func (c *Htmlcoin) ChainId() int {
+	var chainId int
+	switch strings.ToLower(c.Chain()) {
+	case "main":
+		chainId = 4444
+	case "test":
+		chainId = 4445
+	case "regtest":
+		chainId = 4446
+	default:
+		chainId = 4444
+		c.GetDebugLogger().Log("msg", fmt.Sprintf("Unknown chain %d", chainId))
+	}
+
+	return chainId
 }
 
 func (c *Htmlcoin) GetMatureBlockHeight() int {
@@ -124,7 +169,7 @@ func (c *Htmlcoin) GenerateIfPossible() {
 		return
 	}
 
-	if _, generateErr := c.Generate(1, nil); generateErr != nil {
+	if _, generateErr := c.Generate(c.ctx, 1, nil); generateErr != nil {
 		c.GetErrorLogger().Log("Error generating new block", generateErr)
 	}
 }

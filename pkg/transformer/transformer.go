@@ -90,7 +90,7 @@ func DefaultProxies(htmlcoinRPCClient *htmlcoin.Htmlcoin, agent *notifier.Agent)
 	getFilterChanges := &ProxyETHGetFilterChanges{Htmlcoin: htmlcoinRPCClient, filter: filter}
 	ethCall := &ProxyETHCall{Htmlcoin: htmlcoinRPCClient}
 
-	return []ETHProxy{
+	ethProxies := []ETHProxy{
 		ethCall,
 		&ProxyNetListening{Htmlcoin: htmlcoinRPCClient},
 		&ProxyETHPersonalUnlockAccount{},
@@ -135,9 +135,28 @@ func DefaultProxies(htmlcoinRPCClient *htmlcoin.Htmlcoin, agent *notifier.Agent)
 		&ETHUnsubscribe{Htmlcoin: htmlcoinRPCClient, Agent: agent},
 
 		&ProxyHTMLCOINGetUTXOs{Htmlcoin: htmlcoinRPCClient},
+		&ProxyHTMLCOINGenerateToAddress{Htmlcoin: htmlcoinRPCClient},
 
 		&ProxyNetPeerCount{Htmlcoin: htmlcoinRPCClient},
 	}
+
+	permittedHtmlcoinCalls := []string{
+		htmlcoin.MethodGetHexAddress,
+		htmlcoin.MethodFromHexAddress,
+	}
+
+	for _, htmlcoinMethod := range permittedHtmlcoinCalls {
+		ethProxies = append(
+			ethProxies,
+			&ProxyHTMLCOINGenericStringArguments{
+				Htmlcoin:   htmlcoinRPCClient,
+				prefix: "dev",
+				method: htmlcoinMethod,
+			},
+		)
+	}
+
+	return ethProxies
 }
 
 func SetDebug(debug bool) func(*Transformer) error {

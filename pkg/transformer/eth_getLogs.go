@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/labstack/echo"
@@ -32,16 +33,16 @@ func (p *ProxyETHGetLogs) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (i
 	// }
 
 	// Calls ToRequest in order transform ETH-Request to a Htmlcoin-Request
-	htmlcoinreq, err := p.ToRequest(&req)
+	htmlcoinreq, err := p.ToRequest(c.Request().Context(), &req)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.request(htmlcoinreq)
+	return p.request(c.Request().Context(), htmlcoinreq)
 }
 
-func (p *ProxyETHGetLogs) request(req *htmlcoin.SearchLogsRequest) (*eth.GetLogsResponse, eth.JSONRPCError) {
-	receipts, err := conversion.SearchLogsAndFilterExtraTopics(p.Htmlcoin, req)
+func (p *ProxyETHGetLogs) request(ctx context.Context, req *htmlcoin.SearchLogsRequest) (*eth.GetLogsResponse, eth.JSONRPCError) {
+	receipts, err := conversion.SearchLogsAndFilterExtraTopics(ctx, p.Htmlcoin, req)
 	if err != nil {
 		return nil, err
 	}
@@ -56,15 +57,15 @@ func (p *ProxyETHGetLogs) request(req *htmlcoin.SearchLogsRequest) (*eth.GetLogs
 	return &resp, nil
 }
 
-func (p *ProxyETHGetLogs) ToRequest(ethreq *eth.GetLogsRequest) (*htmlcoin.SearchLogsRequest, eth.JSONRPCError) {
+func (p *ProxyETHGetLogs) ToRequest(ctx context.Context, ethreq *eth.GetLogsRequest) (*htmlcoin.SearchLogsRequest, eth.JSONRPCError) {
 	//transform EthRequest fromBlock to HtmlcoinReq fromBlock:
-	from, err := getBlockNumberByRawParam(p.Htmlcoin, ethreq.FromBlock, true)
+	from, err := getBlockNumberByRawParam(ctx, p.Htmlcoin, ethreq.FromBlock, true)
 	if err != nil {
 		return nil, err
 	}
 
 	//transform EthRequest toBlock to HtmlcoinReq toBlock:
-	to, err := getBlockNumberByRawParam(p.Htmlcoin, ethreq.ToBlock, true)
+	to, err := getBlockNumberByRawParam(ctx, p.Htmlcoin, ethreq.ToBlock, true)
 	if err != nil {
 		return nil, err
 	}

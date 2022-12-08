@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -34,10 +35,10 @@ func (p *ProxyHTMLCOINGetUTXOs) Request(req *eth.JSONRPCRequest, c echo.Context)
 		return nil, eth.NewInvalidParamsError("couldn't validate parameters value")
 	}
 
-	return p.request(params)
+	return p.request(c.Request().Context(), params)
 }
 
-func (p *ProxyHTMLCOINGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTXOsResponse, eth.JSONRPCError) {
+func (p *ProxyHTMLCOINGetUTXOs) request(ctx context.Context, params eth.GetUTXOsRequest) (*eth.GetUTXOsResponse, eth.JSONRPCError) {
 	address, err := convertETHAddress(utils.RemoveHexPrefix(params.Address), p.Chain())
 	if err != nil {
 		return nil, eth.NewInvalidParamsError("couldn't convert Ethereum address to Htmlcoin address")
@@ -47,12 +48,12 @@ func (p *ProxyHTMLCOINGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTX
 		Addresses: []string{address},
 	}
 
-	resp, err := p.Htmlcoin.GetAddressUTXOs(&req)
+	resp, err := p.Htmlcoin.GetAddressUTXOs(ctx, &req)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
 
-	blockCount, err := p.Htmlcoin.GetBlockCount()
+	blockCount, err := p.Htmlcoin.GetBlockCount(ctx)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
@@ -92,6 +93,7 @@ func (p *ProxyHTMLCOINGetUTXOs) request(params eth.GetUTXOsRequest) (*eth.GetUTX
 			}
 		}
 
+		// TODO: This doesn't work on regtest coinbase
 		if utxo.IsStake {
 			matureAt := big.NewInt(utxo.Height.Int64()).Add(
 				big.NewInt(utxo.Height.Int64()),

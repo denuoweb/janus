@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -81,8 +82,10 @@ func EthDecimalValueToHtmlcoinAmount(ethValDecimal decimal.Decimal) decimal.Deci
 	// 10000000000
 	// one satoshi is 0.00000001
 	// we need to drop precision for values smaller than that
-	maximumPrecision := ethValDecimal.Mul(decimal.NewFromFloat(float64(1e-8))).Floor()
-	amount := maximumPrecision.Mul(decimal.NewFromFloat(float64(1e-10)))
+	// 1e-8?
+	maximumPrecision := ethValDecimal.Mul(decimal.NewFromFloat(float64(1e-9))).Floor()
+	// was 1e-10
+	amount := maximumPrecision.Mul(decimal.NewFromFloat(float64(1e-9)))
 
 	return amount
 }
@@ -132,35 +135,116 @@ func unmarshalRequest(data []byte, v interface{}) error {
 	return nil
 }
 
-// NOTE:
-// 	- is not for reward transactions
-// 	- Vin[i].N (vout number) -> get Transaction(txID).Vout[N].Address
-// 	- returning address already has 0x prefix
-func getNonContractTxSenderAddress(p *htmlcoin.Htmlcoin, vins []*htmlcoin.DecodedRawTransactionInV) (string, error) {
-	for _, vin := range vins {
-		prevHtmlcoinTx, err := p.GetRawTransaction(vin.TxID, false)
-		if err != nil {
-			return "", errors.WithMessage(err, "couldn't get vin's previous transaction")
+// Function for getting the sender address of a non-contract transaction by ID.
+// Does not handle OP_SENDER addresses, because it is only present in contract TXs
+//
+// TODO: Investigate if limitations on Htmlcoin RPC command GetRawTransaction can cause issues here
+// Brief explanation: A default config Htmlcoin node can only serve this command for transactions in the mempool, so it will likely break for SOME setup at SOME point.
+// However the same info can be found with getblock verbosity = 2, so maybe use that instead?
+func getNonContractTxSenderAddress(ctx context.Context, p *htmlcoin.Htmlcoin, tx *htmlcoin.DecodedRawTransactionResponse) (string, error) {
+	// Fetch raw Tx struct, which contains address data for Vins
+	rawTx, err := p.GetRawTransaction(ctx, tx.ID, false)
+
+	if err != nil {
+		return "", errors.New("Couldn't get raw Transaction data from Transaction ID: " + err.Error())
+	}
+
+	// If Tx has no vins it's either a reward transaction or invalid/corrupt (Right?). This is outside the intended scope of this function, so throw an error
+	if len(rawTx.Vins) == 0 {
+		return "", errors.New("Transaction has 0 Vins and thus no valid sender address")
+	}
+
+	// Take the address of the first Vin as sender address, as per design decision
+	// TODO: Make this not loop, it's not necessary and can in theory produce unintended behavior without causing an error
+	// TODO (research): Is the raw TX Vin list always in the "correct" order? It has to be for this function to produce correct behavior
+	for _, in := range rawTx.Vins {
+		if len(in.Address) == 0 {
+			continue
 		}
-		for _, out := range prevHtmlcoinTx.Vouts {
-			for _, address := range out.Details.Addresses {
-				return utils.AddHexPrefix(address), nil
+		hexAddress, err := utils.ConvertHtmlcoinAddress(in.Address)
+		if err != nil {
+			return "", err
+		}
+		return utils.AddHexPrefix(hexAddress), nil
+	}
+
+	// If we get here, we have no Vins with a valid address, so search for sender address in previous Tx's vouts
+	hexAddr, err := searchSenderAddressInPreviousTransactions(ctx, p, rawTx)
+	if err != nil {
+		return "", errors.New("Couldn't find sender address in previous transactions: " + err.Error())
+	}
+
+	return utils.AddHexPrefix(hexAddr), nil
+}
+
+// Searchs recursively for the sender address in previous transactions
+func searchSenderAddressInPreviousTransactions(ctx context.Context, p *htmlcoin.Htmlcoin, rawTx *htmlcoin.GetRawTransactionResponse) (string, error) {
+	// search within current rawTx for vin containing opcode OP_SPEND
+	var vout int64 = -1
+	var txid string = ""
+	for _, vin := range rawTx.Vins {
+		if vin.ScriptSig.Asm == "OP_SPEND" {
+			vout = vin.VoutN
+			txid = vin.ID
+			break
+		}
+	}
+	if vout == -1 {
+		return "", errors.New("Couldn't find OP_SPEND in transaction Vins")
+	}
+	// fetch previous transaction using txid found in vin above
+	prevRawTx, err := p.GetRawTransaction(ctx, txid, false)
+	if err != nil {
+		p.GetDebugLogger().Log("msg", "Failed to GetRawTransaction", "tx", txid, "err", err)
+		return "", errors.New("Couldn't get raw transaction: " + err.Error())
+	}
+	// check opcodes contained in vout found in previous transaction
+	prevVout := prevRawTx.Vouts[vout]
+	scriptASM, err := htmlcoin.DisasmScript(prevVout.Details.Hex)
+	if err != nil {
+		return "", errors.New("Couldn't disasmbly the hex script: " + err.Error())
+	}
+	script := strings.Split(scriptASM, " ")
+	finalOp := script[len(script)-1]
+	switch finalOp {
+	// If the vout is an OP_SPEND recurse and keep fetching until we find an OP_CREATE or OP_CALL
+	case "OP_SPEND":
+		return searchSenderAddressInPreviousTransactions(ctx, p, prevRawTx)
+	// If we find an OP_CREATE, compute the contract address and set that as the "from"
+	case "OP_CREATE":
+		createInfo, err := htmlcoin.ParseCreateSenderASM(script)
+		if err != nil {
+			// Check for OP_CREATE without OP_SENDER
+			createInfo, err = htmlcoin.ParseCreateASM(script)
+			if err != nil {
+				return "", errors.WithMessage(err, "couldn't parse create sender ASM")
 			}
 		}
+		return createInfo.From, nil
+	// If it's an OP_CALL, extract the contract address and use that as the "from" address
+	case "OP_CALL":
+		callInfo, err := htmlcoin.ParseCallSenderASM(script)
+		if err != nil {
+			// Check for OP_CALL without OP_SENDER
+			callInfo, err = htmlcoin.ParseCallASM(script)
+			if err != nil {
+				return "", errors.WithMessage(err, "couldn't parse call sender ASM")
+			}
+		}
+		return callInfo.To, nil
 	}
-	if len(vins) == 0 {
-		// coinbase?
-		return "", nil
-	}
-	return "", errors.New("not found")
+	return "", errors.New("couldn't find sender address")
 }
 
 // NOTE:
-// 	- is not for reward transactions
-// 	- returning address already has 0x prefix
 //
-// 	TODO: researching
-// 	- Vout[0].Addresses[i] != "" - temporary solution
+//   - is not for reward transactions
+//
+//   - returning address already has 0x prefix
+//
+//     TODO: researching
+//
+//   - Vout[0].Addresses[i] != "" - temporary solution
 func findNonContractTxReceiverAddress(vouts []*htmlcoin.DecodedRawTransactionOutV) (string, error) {
 	for _, vout := range vouts {
 		for _, address := range vout.ScriptPubKey.Addresses {
@@ -176,8 +260,8 @@ func findNonContractTxReceiverAddress(vouts []*htmlcoin.DecodedRawTransactionOut
 	return "", errors.New("not found")
 }
 
-func getBlockNumberByHash(p *htmlcoin.Htmlcoin, hash string) (uint64, error) {
-	block, err := p.GetBlock(hash)
+func getBlockNumberByHash(ctx context.Context, p *htmlcoin.Htmlcoin, hash string) (uint64, error) {
+	block, err := p.GetBlock(ctx, hash)
 	if err != nil {
 		return 0, errors.WithMessage(err, "couldn't get block")
 	}
@@ -185,8 +269,8 @@ func getBlockNumberByHash(p *htmlcoin.Htmlcoin, hash string) (uint64, error) {
 	return uint64(block.Height), nil
 }
 
-func getTransactionIndexInBlock(p *htmlcoin.Htmlcoin, txHash string, blockHash string) (int64, error) {
-	block, err := p.GetBlock(blockHash)
+func getTransactionIndexInBlock(ctx context.Context, p *htmlcoin.Htmlcoin, txHash string, blockHash string) (int64, error) {
+	block, err := p.GetBlock(ctx, blockHash)
 	if err != nil {
 		return -1, errors.WithMessage(err, "couldn't get block")
 	}
@@ -213,13 +297,14 @@ func formatHtmlcoinNonce(nonce int) string {
 
 // Returns Htmlcoin block number. Result depends on a passed raw param. Raw param's slice of bytes should
 // has one of the following values:
-// 	- hex string representation of a number of a specific block
-//  - integer - returns the value
-// 	- string "latest" - for the latest mined block
-// 	- string "earliest" for the genesis block
-// 	- string "pending" - for the pending state/transactions
+//   - hex string representation of a number of a specific block
+//   - integer - returns the value
+//   - string "latest" - for the latest mined block
+//   - string "earliest" for the genesis block
+//   - string "pending" - for the pending state/transactions
+//
 // Uses defaultVal to differntiate from a eth_getBlockByNumber req and eth_getLogs/eth_newFilter
-func getBlockNumberByRawParam(p *htmlcoin.Htmlcoin, rawParam json.RawMessage, defaultVal bool) (*big.Int, eth.JSONRPCError) {
+func getBlockNumberByRawParam(ctx context.Context, p *htmlcoin.Htmlcoin, rawParam json.RawMessage, defaultVal bool) (*big.Int, eth.JSONRPCError) {
 	var param string
 	if isBytesOfString(rawParam) {
 		param = string(rawParam[1 : len(rawParam)-1]) // trim \" runes
@@ -231,13 +316,13 @@ func getBlockNumberByRawParam(p *htmlcoin.Htmlcoin, rawParam json.RawMessage, de
 		return nil, eth.NewInvalidParamsError("invalid parameter format - string or integer is expected")
 	}
 
-	return getBlockNumberByParam(p, param, defaultVal)
+	return getBlockNumberByParam(ctx, p, param, defaultVal)
 }
 
-func getBlockNumberByParam(p *htmlcoin.Htmlcoin, param string, defaultVal bool) (*big.Int, eth.JSONRPCError) {
+func getBlockNumberByParam(ctx context.Context, p *htmlcoin.Htmlcoin, param string, defaultVal bool) (*big.Int, eth.JSONRPCError) {
 	if len(param) < 1 {
 		if defaultVal {
-			res, err := p.GetBlockChainInfo()
+			res, err := p.GetBlockChainInfo(ctx)
 			if err != nil {
 				return nil, eth.NewCallbackError(err.Error())
 			}
@@ -251,7 +336,7 @@ func getBlockNumberByParam(p *htmlcoin.Htmlcoin, param string, defaultVal bool) 
 
 	switch param {
 	case "latest":
-		res, err := p.GetBlockChainInfo()
+		res, err := p.GetBlockChainInfo(ctx)
 		if err != nil {
 			return nil, eth.NewCallbackError(err.Error())
 		}
@@ -363,5 +448,5 @@ func convertFromHtmlcoinToSatoshis(inHtmlcoin decimal.Decimal) decimal.Decimal {
 }
 
 func convertFromSatoshiToWei(inSatoshis *big.Int) *big.Int {
-	return inSatoshis.Mul(inSatoshis, big.NewInt(1e9))
+	return inSatoshis.Mul(inSatoshis, big.NewInt(1e10))
 }

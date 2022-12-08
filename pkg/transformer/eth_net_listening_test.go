@@ -37,17 +37,12 @@ func testNetListeningRequest(t *testing.T, active bool) {
 	}
 
 	proxyEth := ProxyNetListening{htmlcoinClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	want := active
-	if want != got {
-		t.Errorf(
-			"error\nwant: %t\ngot: %t",
-			want,
-			got,
-		)
-	}
+
+	internal.CheckTestResultEthRequestRPC(*request, want, got, t, false)
 }

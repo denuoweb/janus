@@ -37,7 +37,7 @@ module.exports = {
       network_id: "*",
     },
     testnet: {
-      host: "hk1.s.qtum.org",
+      host: "hk1.s.htmlcoin.org",
       port: 23889,
       network_id: "*",
       from: "0x7926223070547d2d15b2ef5e7383e541c338ffe9",
@@ -46,7 +46,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: "^0.8.0",
+      version: "0.8.3",
       settings: {
         optimizer: {
           enabled: true,

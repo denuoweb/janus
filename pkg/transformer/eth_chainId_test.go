@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -11,19 +10,19 @@ import (
 )
 
 func TestChainIdMainnet(t *testing.T) {
-	testChainIdsImpl(t, "main", "0x115C")
+	testChainIdsImpl(t, "main", "0x51")
 }
 
 func TestChainIdTestnet(t *testing.T) {
-	testChainIdsImpl(t, "test", "0x115D")
+	testChainIdsImpl(t, "test", "0x22b9")
 }
 
 func TestChainIdRegtest(t *testing.T) {
-	testChainIdsImpl(t, "regtest", "0x115E")
+	testChainIdsImpl(t, "regtest", "0x22ba")
 }
 
 func TestChainIdUnknown(t *testing.T) {
-	testChainIdsImpl(t, "???", "0x115E")
+	testChainIdsImpl(t, "???", "0x22ba")
 }
 
 func testChainIdsImpl(t *testing.T, chain string, expected string) {
@@ -35,10 +34,6 @@ func testChainIdsImpl(t *testing.T, chain string, expected string) {
 	}
 
 	mockedClientDoer := internal.NewDoerMappedMock()
-	htmlcoinClient, err := internal.CreateMockedClient(mockedClientDoer)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	//preparing client response
 	getBlockCountResponse := htmlcoin.GetBlockChainInfoResponse{Chain: chain}
@@ -47,20 +42,19 @@ func testChainIdsImpl(t *testing.T, chain string, expected string) {
 		t.Fatal(err)
 	}
 
+	htmlcoinClient, err := internal.CreateMockedClientForNetwork(mockedClientDoer, htmlcoin.ChainAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	//preparing proxy & executing request
 	proxyEth := ProxyETHChainId{htmlcoinClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	want := eth.ChainIdResponse(expected)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			want,
-			got,
-		)
-	}
+
+	internal.CheckTestResultEthRequestRPC(*request, want, got, t, false)
 }

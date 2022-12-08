@@ -5,7 +5,8 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/decred/base58"
+	"github.com/btcsuite/btcutil/base58"
+	// "github.com/decred/base58"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
@@ -39,6 +40,9 @@ func AddHexPrefixIfNotEmpty(hex string) string {
 // DecodeBig decodes a hex string whether input is with 0x prefix or not.
 func DecodeBig(input string) (*big.Int, error) {
 	input = AddHexPrefix(input)
+	if input == "0x00" {
+		return big.NewInt(0), nil
+	}
 	return hexutil.DecodeBig(input)
 }
 
@@ -46,6 +50,11 @@ func DecodeBig(input string) (*big.Int, error) {
 func ConvertHtmlcoinAddress(address string) (ethAddress string, _ error) {
 	if n := len(address); n < 22 {
 		return "", errors.Errorf("invalid address: length is less than 22 bytes - %d", n)
+	}
+
+	_, _, err := base58.CheckDecode(address)
+	if err != nil {
+		return "", errors.Errorf("invalid address")
 	}
 
 	// Drop Htmlcoin chain prefix and checksum suffix

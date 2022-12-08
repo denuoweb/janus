@@ -1,40 +1,40 @@
 version: "3.3"
 services:
   janus:
-    image: qtum/janus:dev
+    image: htmlcoin/janus:dev
     build:
       context: ../../
       dockerfile: ./Dockerfile
       cache_from:
-        - golang:1.14-alpine
-        - qtum/janus:dev
+        - golang:3.16-alpine
+        - htmlcoin/janus:dev
     ports:
       - "23889:23889"
     environment:
-      - QTUM_RPC=http://qtum:testpasswd@qtum:3889
+      - HTMLCOIN_RPC=http://htmlcoin:testpasswd@htmlcoin:3889
     volumes:
-      - ../standalone/myaccounts.txt:$GOPATH/github.com/qtumproject/janus/myaccounts.txt
+      - ../../:/src:ro
     depends_on:
-      - qtum
-    command: --bind 0.0.0.0 --accounts /go/src/github.com/qtumproject/janus/myaccounts.txt --dev
-  qtum:
+      - htmlcoin
+    command: --bind 0.0.0.0 --accounts /src/myaccounts.txt --dev
+  htmlcoin:
     ports:
       - "3889:3889"
-    image: qtum/qtum-seeded
+    image: htmlcoin/htmlcoin-seeded
     build:
       context: ../../docker
-      dockerfile: ./qtum-seeded.Dockerfile
+      dockerfile: ./htmlcoin-seeded.Dockerfile
       cache_from:
-        - qtum/qtum-seeded
-    container_name: qtum_seeded_testchain
-    command: qtumd -regtest -addrindex -txindex -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents -rpcuser=qtum -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole
+        - htmlcoin/htmlcoin-seeded
+    container_name: htmlcoin_seeded_testchain
+    command: htmlcoind -regtest -addrindex -txindex -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole
   openzeppelin:
-    image: qtum/janus-openzeppelin
+    image: htmlcoin/janus-openzeppelin
     build:
       context: .
       dockerfile: ./openzeppelin.Dockerfile
       cache_from:
-        - qtum/janus-openzeppelin
+        - htmlcoin/janus-openzeppelin
     environment:
       - GENERATE_TO_ADDRESS=qW28njWueNpBXYWj2KDmtFG2gbLeALeHfV
     depends_on:

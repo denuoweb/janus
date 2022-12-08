@@ -3,7 +3,6 @@ package transformer
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -44,20 +43,13 @@ func testPeerCountRequest(t *testing.T, clients int) {
 		t.Fatal(err)
 	}
 
-	proxyEth := ProxyNetPeerCount{qtumClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	proxyEth := ProxyNetPeerCount{htmlcoinClient}
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	want := eth.NetPeerCountResponse(hexutil.EncodeUint64(uint64(clients)))
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %d\nwant: %s\ngot: %s",
-			clients,
-			want,
-			got,
-		)
-	}
 
+	internal.CheckTestResultUnspecifiedInput(fmt.Sprint(clients), &want, got, t, false)
 }

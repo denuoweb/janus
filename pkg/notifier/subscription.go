@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -114,12 +115,23 @@ func (s *subscriptionInformation) run() {
 		req.FromBlock = nextBlock
 		timeBeforeCall := time.Now()
 		rolling.Push(&timeBeforeCall)
-		resp, err := s.htmlcoin.WaitForLogsWithContext(s.ctx, req)
+		resp, err := s.htmlcoin.WaitForLogs(s.ctx, req)
 		timeAfterCall := time.Now()
 		if err == nil {
 			nextBlock = int(resp.NextBlock)
-			for _, htmlcoinLog := range resp.Entries {
-				htmlcoinLogs := []htmlcoin.Log{htmlcoinLog.Log()}
+			reqSearchLogs := htmlcoin.SearchLogsRequest{
+				FromBlock: big.NewInt(int64(resp.NextBlock - 1)),
+				ToBlock:   big.NewInt(int64(resp.NextBlock - 1)),
+				Addresses: *req.Filter.Addresses,
+				Topics:    *req.Filter.Topics,
+			}
+			receiptsSearchLogs, err := s.htmlcoin.SearchLogs(s.ctx, &reqSearchLogs)
+			if err != nil {
+				s.htmlcoin.GetErrorLogger().Log("msg", "Error calling searchLogs", "subscriptionId", s.id, "error", err)
+				return
+			}
+			for _, htmlcoinLog := range receiptsSearchLogs {
+				htmlcoinLogs := htmlcoinLog.Log
 				logs := conversion.FilterHtmlcoinLogs(stringAddresses, htmlcoinTopics, htmlcoinLogs)
 				ethLogs := conversion.ExtractETHLogsFromTransactionReceipt(htmlcoinLog, logs)
 				for _, ethLog := range ethLogs {

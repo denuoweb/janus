@@ -946,6 +946,7 @@ var AllUTXOScriptTypes = []UTXOScriptType{
 	P2WSH,
 	P2SHP2WPKH,
 	P2SHP2WSH,
+	P2MS,
 }
 
 func (utxo UTXOScriptType) String() string {
@@ -1103,6 +1104,11 @@ func (utxo HtmlcoinUTXO) GetType() UTXOScriptType {
 	}
 	// TODO: OP_RETURN
 }
+
+type (
+	StringsArguments []string
+	StringResponse   string
+)
 
 // ======= web3_sha3 ======= //
 type Web3Sha3Request struct {

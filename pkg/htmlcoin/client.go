@@ -10,15 +10,18 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/htmlcoin/janus/pkg/analytics"
+	"github.com/htmlcoin/janus/pkg/blockhash"
 )
 
 var FLAG_GENERATE_ADDRESS_TO = "REGTEST_GENERATE_ADDRESS_TO"
@@ -30,11 +33,14 @@ var FLAG_MATURE_BLOCK_HEIGHT_OVERRIDE = "FLAG_MATURE_BLOCK_HEIGHT_OVERRIDE"
 var maximumRequestTime = 10000
 var maximumBackoff = (2 * time.Second).Milliseconds()
 
+type ErrorHandler func(context.Context, error) error
+
 type Client struct {
-	URL  string
-	url  *url.URL
-	doer doer
-	ctx  context.Context
+	URL      string
+	url      *url.URL
+	doer     doer
+	ctx      context.Context
+	DbConfig blockhash.DatabaseConfig
 
 	// hex addresses to return for eth_accounts
 	Accounts Accounts
@@ -52,6 +58,11 @@ type Client struct {
 
 	mutex *sync.RWMutex
 	flags map[string]interface{}
+
+	cache *clientCache
+
+	analytics    *analytics.Analytics
+	errorHandler ErrorHandler
 }
 
 func ReformatJSON(input []byte) ([]byte, error) {
@@ -74,9 +85,25 @@ func NewClient(isMain bool, rpcURL string, opts ...func(*Client) error) (*Client
 		return nil, errors.Wrap(err, "Failed to parse rpc url")
 	}
 
+	tr := &http.Transport{
+		MaxIdleConns:        16,
+		MaxIdleConnsPerHost: 16,
+		MaxConnsPerHost:     16,
+		IdleConnTimeout:     60 * time.Second,
+		DisableKeepAlives:   false,
+		DialContext: (&net.Dialer{
+			Timeout: 60 * time.Second,
+		}).DialContext,
+	}
+
+	httpClient := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: tr,
+	}
+
 	c := &Client{
 		isMain: isMain,
-		doer:   http.DefaultClient,
+		doer:   httpClient,
 		URL:    rpcURL,
 		url:    url,
 		logger: log.NewNopLogger(),
@@ -85,6 +112,7 @@ func NewClient(isMain bool, rpcURL string, opts ...func(*Client) error) (*Client
 		idStep: big.NewInt(1),
 		mutex:  &sync.RWMutex{},
 		flags:  make(map[string]interface{}),
+		cache:  newClientCache(),
 	}
 
 	for _, opt := range opts {
@@ -93,7 +121,17 @@ func NewClient(isMain bool, rpcURL string, opts ...func(*Client) error) (*Client
 		}
 	}
 
+	c.cache.configLogger(c.logWriter, c.debug)
+
 	return c, nil
+}
+
+func (c *Client) SetErrorHandler(errorHandler ErrorHandler) {
+	c.errorHandler = errorHandler
+}
+
+func (c *Client) GetErrorHandler() ErrorHandler {
+	return c.errorHandler
 }
 
 func (c *Client) GetURL() *url.URL {
@@ -109,22 +147,69 @@ func (c *Client) Request(method string, params interface{}, result interface{}) 
 }
 
 func (c *Client) RequestWithContext(ctx context.Context, method string, params interface{}, result interface{}) error {
+	if ctx == nil {
+		ctx = c.GetContext()
+	}
+
+	// check if method is cacheable first
+	if c.cache.isCachable(method) {
+		c.cache.setContext(ctx)
+		// check if we have a cached result
+		cachedResult, err := c.cache.getResponse(method, params)
+		if cachedResult != nil && err == nil {
+			// we have a cached result, return it
+			err := json.Unmarshal(cachedResult, result)
+			if err != nil {
+				c.GetDebugLogger().Log("method", method, "params", params, "result", result, "error", err)
+				return errors.Wrap(err, "couldn't unmarshal response result field")
+			}
+			if c.IsDebugEnabled() && !c.GetFlagBool(FLAG_HIDE_HTMLCOIND_LOGS) {
+				c.printRPCRequest(method, params)
+				c.printCachedRPCResponse(cachedResult)
+			}
+			return nil
+		}
+	}
+	// we don't have a cached result, so we need to make a request
 	req, err := c.NewRPCRequest(method, params)
 	if err != nil {
 		return errors.WithMessage(err, "couldn't make new rpc request")
 	}
+
+	handledErrors := make(map[error]bool)
 
 	var resp *SuccessJSONRPCResult
 	max := int(math.Floor(math.Max(float64(maximumRequestTime/int(maximumBackoff)), 1)))
 	for i := 0; i < max; i++ {
 		resp, err = c.Do(ctx, req)
 		if err != nil {
-			if strings.Contains(err.Error(), ErrHtmlcoinWorkQueueDepth.Error()) && i != max-1 {
+			errorHandlerErr := c.errorHandler(ctx, err)
+			retry := false
+			if errorHandlerErr != nil && i != max-1 {
+				// only allow recovering from a specific error once
+				if _, ok := handledErrors[errorHandlerErr]; !ok {
+					handledErrors[err] = true
+					retry = true
+				}
+			}
+			if (retry || strings.Contains(err.Error(), ErrHtmlcoinWorkQueueDepth.Error())) && i != max-1 {
 				requestString := marshalToString(req)
 				backoffTime := computeBackoff(i, true)
 				c.GetLogger().Log("msg", fmt.Sprintf("HTMLCOIN process busy, backing off for %f seconds", backoffTime.Seconds()), "request", requestString)
-				time.Sleep(backoffTime)
+				// TODO check if this works as expected
+				var done <-chan struct{}
+				if c.ctx != nil {
+					done = c.ctx.Done()
+				} else {
+					done = context.Background().Done()
+				}
+				select {
+				case <-time.After(backoffTime):
+				case <-done:
+					return errors.WithMessage(ctx.Err(), "context cancelled")
+				}
 				c.GetLogger().Log("msg", "Retrying HTMLCOIN command")
+>>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc:pkg/htmlcoin/client.go
 			} else {
 				if i != 0 {
 					c.GetLogger().Log("msg", fmt.Sprintf("Giving up on HTMLCOIN RPC call after %d tries since its busy", i+1))
@@ -141,12 +226,18 @@ func (c *Client) RequestWithContext(ctx context.Context, method string, params i
 		c.GetDebugLogger().Log("method", method, "params", params, "result", result, "error", err)
 		return errors.Wrap(err, "couldn't unmarshal response result field")
 	}
+
+	if c.cache.isCachable(method) {
+		c.cache.storeResponse(method, params, resp.RawResult)
+	}
+
 	return nil
 }
 
 func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCResult, error) {
 	reqBody, err := json.MarshalIndent(req, "", "  ")
 	if err != nil {
+		defer c.failure()
 		return nil, err
 	}
 
@@ -160,6 +251,7 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 
 	respBody, err := c.do(ctx, bytes.NewReader(reqBody))
 	if err != nil {
+		defer c.failure()
 		return nil, errors.Wrap(err, "Client#do")
 	}
 
@@ -180,9 +272,10 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 
 	res, err := c.responseBodyToResult(respBody)
 	if err != nil {
+		defer c.failure()
 		if respBody == nil || len(respBody) == 0 {
 			debugLogger.Log("Empty response")
-			return nil, errors.Wrap(err, "responseBodyToResult empty response")
+			return nil, errors.Wrap(err, "empty response")
 		}
 		if IsKnownError(err) {
 			return nil, err
@@ -192,10 +285,23 @@ func (c *Client) Do(ctx context.Context, req *JSONRPCRequest) (*SuccessJSONRPCRe
 			return nil, ErrHtmlcoinWorkQueueDepth
 		}
 		debugLogger.Log("msg", "Failed to parse response body", "body", string(respBody), "error", err)
-		return nil, errors.Wrap(err, "responseBodyToResult")
+		return nil, err
 	}
 
+	defer c.success()
 	return res, nil
+}
+
+func (c *Client) success() {
+	if c.analytics != nil {
+		c.analytics.Success()
+	}
+}
+
+func (c *Client) failure() {
+	if c.analytics != nil {
+		c.analytics.Failure()
+	}
 }
 
 func (c *Client) NewRPCRequest(method string, params interface{}) (*JSONRPCRequest, error) {
@@ -228,7 +334,7 @@ func (c *Client) do(ctx context.Context, body io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	req.Close = true
+	req.Close = false
 
 	resp, err := c.doer.Do(req)
 	if err != nil {
@@ -386,6 +492,62 @@ func SetContext(ctx context.Context) func(*Client) error {
 	}
 }
 
+func SetSqlHost(host string) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.Host = host
+		return nil
+	}
+}
+
+func SetSqlPort(port int) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.Port = port
+		return nil
+	}
+}
+
+func SetSqlUser(user string) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.User = user
+		return nil
+	}
+}
+
+func SetSqlPassword(password string) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.Password = password
+		return nil
+	}
+}
+
+func SetSqlSSL(ssl bool) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.SSL = ssl
+		return nil
+	}
+}
+
+func SetSqlDatabaseName(databaseName string) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.DatabaseName = databaseName
+		return nil
+	}
+}
+
+func SetSqlConnectionString(connectionString string) func(*Client) error {
+	return func(c *Client) error {
+		c.DbConfig.ConnectionString = connectionString
+		return nil
+	}
+}
+
+func SetAnalytics(analytics *analytics.Analytics) func(*Client) error {
+	return func(c *Client) error {
+		c.analytics = analytics
+		return nil
+	}
+}
+
 func (c *Client) GetContext() context.Context {
 	return c.ctx
 }
@@ -460,4 +622,34 @@ func checkRPCURL(u string) error {
 	}
 
 	return nil
+}
+
+func (c *Client) printCachedRPCResponse(cachedResponse []byte) {
+	formattedBody, err := ReformatJSON(cachedResponse)
+	formattedBodyStr := string(formattedBody)
+	if !c.GetFlagBool(FLAG_DISABLE_SNIPPING_LOGS) {
+		maxBodySize := 1024 * 8
+		if len(formattedBodyStr) > maxBodySize {
+			formattedBodyStr = formattedBodyStr[0:maxBodySize/2] + "\n...snip...\n" + formattedBodyStr[len(formattedBody)-maxBodySize/2:]
+		}
+	}
+
+	if err == nil && c.logWriter != nil {
+		fmt.Fprintf(c.logWriter, "<= htmlcoin (CACHED) RPC response\n%s\n", formattedBodyStr)
+	}
+}
+
+func (c *Client) printRPCRequest(method string, params interface{}) {
+	req, err := c.NewRPCRequest(method, params)
+	if err != nil {
+		fmt.Fprintf(c.logWriter, "=> htmlcoin RPC request\n%s\n", err.Error())
+	}
+	reqBody, err := json.MarshalIndent(req, "", "  ")
+	if err != nil {
+		fmt.Fprintf(c.logWriter, "=> htmlcoin RPC request\n%s\n", err.Error())
+	}
+
+	debugLogger := c.GetDebugLogger()
+	debugLogger.Log("method", req.Method)
+	fmt.Fprintf(c.logWriter, "=> htmlcoin RPC request\n%s\n", reqBody)
 }

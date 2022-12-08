@@ -1,6 +1,7 @@
 package conversion
 
 import (
+	"context"
 	"strings"
 
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -43,8 +44,8 @@ func ConvertLogTopicsToStringArray(topics []interface{}) []string {
 	return requestedTopics
 }
 
-func SearchLogsAndFilterExtraTopics(q *htmlcoin.Htmlcoin, req *htmlcoin.SearchLogsRequest) (htmlcoin.SearchLogsResponse, eth.JSONRPCError) {
-	receipts, err := q.SearchLogs(req)
+func SearchLogsAndFilterExtraTopics(ctx context.Context, q *htmlcoin.Htmlcoin, req *htmlcoin.SearchLogsRequest) (htmlcoin.SearchLogsResponse, eth.JSONRPCError) {
+	receipts, err := q.SearchLogs(ctx, req)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}
@@ -104,7 +105,7 @@ func FilterHtmlcoinLogs(addresses []string, filters []htmlcoin.SearchLogsTopic, 
 	filteredLogs := []htmlcoin.Log{}
 
 	for _, log := range logs {
-		if hasAddresses && !requestedAddressesMap[strings.ToLower(log.Address)] {
+		if hasAddresses && !requestedAddressesMap[strings.ToLower(strings.TrimPrefix(log.Address, "0x"))] {
 			continue
 		}
 

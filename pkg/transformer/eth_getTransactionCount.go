@@ -25,7 +25,7 @@ func (p *ProxyETHTxCount) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (i
 	if err := unmarshalRequest(rawreq.Params, &req); err != nil {
 		return nil, err
 	}*/
-	htmlcoinresp, err := p.Htmlcoin.GetTransactionCount("", "")
+	htmlcoinresp, err := p.Htmlcoin.GetTransactionCount(c.Request().Context(), "", "")
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}

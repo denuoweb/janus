@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/internal"
@@ -17,15 +16,12 @@ func TestGetCompilersReturnsEmptyArray(t *testing.T) {
 	}
 
 	proxyEth := ETHGetCompilers{}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
-	if fmt.Sprintf("%v", got) != "[]" {
-		t.Errorf(
-			"error\nwant: '[]'\ngot: '%v'",
-			got,
-		)
-	}
+	want := []string{}
+
+	internal.CheckTestResultDefault(want, got, t, false)
 }

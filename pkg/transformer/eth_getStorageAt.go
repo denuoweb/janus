@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/labstack/echo"
@@ -26,20 +27,24 @@ func (p *ProxyETHGetStorageAt) Request(rawreq *eth.JSONRPCRequest, c echo.Contex
 	}
 
 	htmlcoinAddress := utils.RemoveHexPrefix(req.Address)
-	blockNumber, err := getBlockNumberByParam(p.Htmlcoin, req.BlockNumber, false)
+	blockNumber, err := getBlockNumberByParam(c.Request().Context(), p.Htmlcoin, req.BlockNumber, false)
 	if err != nil {
 		p.GetDebugLogger().Log("msg", fmt.Sprintf("Failed to get block number by param for '%s'", req.BlockNumber), "err", err)
 		return nil, err
 	}
 
-	return p.request(&htmlcoin.GetStorageRequest{
-		Address:     htmlcoinAddress,
-		BlockNumber: blockNumber,
-	}, utils.RemoveHexPrefix(req.Index))
+	return p.request(
+		c.Request().Context(),
+		&htmlcoin.GetStorageRequest{
+			Address:     htmlcoinAddress,
+			BlockNumber: blockNumber,
+		},
+		utils.RemoveHexPrefix(req.Index),
+	)
 }
 
-func (p *ProxyETHGetStorageAt) request(ethreq *htmlcoin.GetStorageRequest, index string) (*eth.GetStorageResponse, eth.JSONRPCError) {
-	htmlcoinresp, err := p.Htmlcoin.GetStorage(ethreq)
+func (p *ProxyETHGetStorageAt) request(ctx context.Context, ethreq *htmlcoin.GetStorageRequest, index string) (*eth.GetStorageResponse, eth.JSONRPCError) {
+	htmlcoinresp, err := p.Htmlcoin.GetStorage(ctx, ethreq)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}

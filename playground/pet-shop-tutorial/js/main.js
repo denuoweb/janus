@@ -11,50 +11,51 @@ window.jQuery = $;
 
 let HTMLCOINMainnet = {
   chainId: '0x115C', // 4444
-  chainName: 'HTMLCOIN Mainnet',
+  chainName: 'Htmlcoin Mainnet',
   rpcUrls: ['https://janus.htmlcoin.com/api/'],
-  blockExplorerUrls: ['https://info.htmlcoin.com/'],
+  blockExplorerUrls: ['https://explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://htmlcoin.com/images/metamask_icon.svg',
-    'https://htmlcoin.com/images/metamask_icon.svg',
+    'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',
   ],
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     symbol: 'HTML',
   },
 };
 let HTMLCOINTestNet = {
   chainId: '0x115D', // 4445
-  chainName: 'HTMLCOIN Testnet',
-  rpcUrls: ['https://testnet-janus.htmlcoin.com/api/'],
-  blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
+  chainName: 'Htmlcoin Testnet',
+  rpcUrls: ['https://testnet.htmlcoin.com/janus/'],
+  // rpcUrls: ['https://localhost:23889'],
+  blockExplorerUrls: ['https://testnet.htmlcoin.com/'],
   iconUrls: [
-    'https://htmlcoin.com/images/metamask_icon.svg',
-    'https://htmlcoin.com/images/metamask_icon.png',
+    'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',
   ],
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     symbol: 'HTML',
   },
 };
 let HTMLCOINRegTest = {
   chainId: '0x115E', // 4446
-  chainName: 'HTMLCOIN Regtest',
+  chainName: 'Htmlcoin Regtest',
   rpcUrls: ['https://localhost:24889'],
-  // blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
+  // blockExplorerUrls: ['https://testnet.htmlcoin.info/'],
   iconUrls: [
-    'https://htmlcoin.com/images/metamask_icon.svg',
-    'https://htmlcoin.com/images/metamask_icon.png',
+    'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',
   ],
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     symbol: 'HTML',
   },
 };
 let config = {
   "0x115C": HTMLCOINMainnet,
+  4444: HTMLCOINMainnet,
   "0x115D": HTMLCOINTestNet,
+  4445: HTMLCOINTestNet,
   "0x115E": HTMLCOINRegTest,
+  4446: HTMLCOINRegTest,
 };
 config[HTMLCOINMainnet.chainId] = HTMLCOINMainnet;
 config[HTMLCOINTestNet.chainId] = HTMLCOINTestNet;
@@ -90,20 +91,22 @@ window.App = {
   },
 
   getChainId: function() {
-    return (window.htmlcoin || {}).chainId || 4444;
+    return (window.htmlcoin || {}).chainId || 8890;
   },
   isOnHtmlcoinChainId: function() {
     let chainId = this.getChainId();
-    return chainId == HTMLCOINMainnet.chainId || chainId == HTMLCOINTestNet.chainId;
+    return chainId == HTMLCOINMainnet.chainId ||
+        chainId == HTMLCOINTestNet.chainId ||
+        chainId == HTMLCOINRegTest.chainId;
   },
 
   initEthers: function() {
-    let htmlcoinRpcProvider = new HtmlcoinProvider(HTMLCOINTestNet.rpcUrls[0]);
+    let htmlcoinRpcProvider = new HtmlcoinProvider((config[this.getChainId()] || {}).rpcUrls[0]);
     let privKey = "1dd19e1648a23aaf2b3d040454d2569bd7f2cd816cf1b9b430682941a98151df";
     // WIF format
     // let privKey = "cMbgxCJrTYUqgcmiC1berh5DFrtY1KeU4PXZ6NZxgenniF1mXCRk";
     let htmlcoinWallet = new HtmlcoinWallet(privKey, htmlcoinRpcProvider);
-    
+
     window.htmlcoinWallet = htmlcoinWallet;
     App.account = htmlcoinWallet.address
     App.web3Provider = htmlcoinWallet;
@@ -131,7 +134,7 @@ window.App = {
             if (currentlyHtmlcoinConnected != htmlcoinConnected) {
               console.log("ChainID matches HTMLCOIN, not prompting to add network to web3, already connected.");
             }
-            let htmlcoinRpcProvider = new htmlcoinProvider(HTMLCOINTestNet.rpcUrls[0]);
+            let htmlcoinRpcProvider = new HtmlcoinProvider(HTMLCOINTestNet.rpcUrls[0]);
             let htmlcoinWallet = new HtmlcoinWallet("1dd19e1648a23aaf2b3d040454d2569bd7f2cd816cf1b9b430682941a98151df", htmlcoinRpcProvider);
             App.account = htmlcoinWallet.address
             if (!metamask) {
@@ -139,7 +142,7 @@ window.App = {
             } else {
               App.web3Provider = new providers.Web3Provider(window.htmlcoin);
             }
-            
+
             return App.initContract();
           })
           .catch((e) => {
@@ -164,7 +167,7 @@ window.App = {
     } else {
       App.contracts.Adoption = new Contract(artifacts.address, AdoptionArtifact.abi, App.web3Provider.getSigner())
     }
-    
+
 
     // Set the provider for our contract
     // App.contracts.Adoption.setProvider(App.web3Provider);

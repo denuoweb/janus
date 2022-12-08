@@ -1,6 +1,8 @@
 package transformer
 
 import (
+	"context"
+
 	"github.com/labstack/echo"
 	"github.com/htmlcoin/janus/pkg/eth"
 	"github.com/htmlcoin/janus/pkg/htmlcoin"
@@ -16,11 +18,11 @@ func (p *ProxyETHMining) Method() string {
 }
 
 func (p *ProxyETHMining) Request(_ *eth.JSONRPCRequest, c echo.Context) (interface{}, eth.JSONRPCError) {
-	return p.request()
+	return p.request(c.Request().Context())
 }
 
-func (p *ProxyETHMining) request() (*eth.MiningResponse, eth.JSONRPCError) {
-	htmlcoinresp, err := p.Htmlcoin.GetMining()
+func (p *ProxyETHMining) request(ctx context.Context) (*eth.MiningResponse, eth.JSONRPCError) {
+	htmlcoinresp, err := p.Htmlcoin.GetMining(ctx)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}

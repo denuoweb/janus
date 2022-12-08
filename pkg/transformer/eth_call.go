@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/labstack/echo"
@@ -25,10 +26,10 @@ func (p *ProxyETHCall) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (inte
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	return p.request(&req)
+	return p.request(c.Request().Context(), &req)
 }
 
-func (p *ProxyETHCall) request(ethreq *eth.CallRequest) (interface{}, eth.JSONRPCError) {
+func (p *ProxyETHCall) request(ctx context.Context, ethreq *eth.CallRequest) (interface{}, eth.JSONRPCError) {
 	// eth req -> htmlcoin req
 	htmlcoinreq, jsonErr := p.ToRequest(ethreq)
 	if jsonErr != nil {
@@ -40,7 +41,7 @@ func (p *ProxyETHCall) request(ethreq *eth.CallRequest) (interface{}, eth.JSONRP
 		return &htmlcoinresp, nil
 	}
 
-	htmlcoinresp, err := p.CallContract(htmlcoinreq)
+	htmlcoinresp, err := p.CallContract(ctx, htmlcoinreq)
 	if err != nil {
 		if err == htmlcoin.ErrInvalidAddress {
 			htmlcoinresp := eth.CallResponse("0x")

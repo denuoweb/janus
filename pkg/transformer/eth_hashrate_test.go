@@ -3,7 +3,6 @@ package transformer
 import (
 	"encoding/json"
 	"math"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -36,19 +35,13 @@ func TestHashrateRequest(t *testing.T) {
 	}
 
 	proxyEth := ProxyETHHashrate{htmlcoinClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	expected := hexutil.EncodeUint64(math.Float64bits(4.656542373906925e-010))
 	want := eth.HashrateResponse(expected)
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %v\ngot: %v",
-			*request,
-			want,
-			got,
-		)
-	}
+
+	internal.CheckTestResultEthRequestRPC(*request, &want, got, t, false)
 }

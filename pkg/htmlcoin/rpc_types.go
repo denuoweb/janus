@@ -17,8 +17,8 @@ import (
 const (
 	genesisBlockHeight = 0
 
-	// Is hex representation of 21000 value, which is default value
-	DefaultBlockGasLimit = "5208"
+	// Is hex representation of 40M value, which is the block gas limit, 20M is tx gas limit
+	DefaultBlockGasLimit = "2625A00"
 
 	// Is a zero wallet address, which is used as a stub, when
 	// original value cannot be defined in such cases as generated
@@ -195,7 +195,7 @@ func (r *SendToAddressRequest) MarshalJSON() ([]byte, error) {
 		       "CONSERVATIVE"
 		9. "avoid_reuse" 	(boolean, optional, default=true) Avoid spending from dirty addresses;
 					addresses are considered dirty if they have previously been used in a transaction
-		10. "senderaddress"      (string, optional) The quantum address that will be used to send money from.
+		10. "senderaddress"      (string, optional) The htmlcoin address that will be used to send money from.
 		11."changeToSender"     (bool, optional, default=false) Return the change to the sender.
 	*/
 	return json.Marshal([]interface{}{
@@ -291,7 +291,7 @@ func (r *CreateContractRequest) MarshalJSON() ([]byte, error) {
 		1. "bytecode"  (string, required) contract bytcode.
 		2. gasLimit  (numeric or string, optional) gasLimit, default: 2500000, max: 40000000
 		3. gasPrice  (numeric or string, optional) gasPrice HTML price per gas unit, default: 0.0000004, min:0.0000004
-		4. "senderaddress" (string, optional) The quantum address that will be used to create the contract.
+		4. "senderaddress" (string, optional) The htmlcoin address that will be used to create the contract.
 		5. "broadcast" (bool, optional, default=true) Whether to broadcast the transaction or not.
 		6. "changeToSender" (bool, optional, default=true) Return the change to the sender.
 	*/
@@ -468,27 +468,32 @@ type (
 		Vouts    []*DecodedRawTransactionOutV `json:"vout"`
 	}
 	DecodedRawTransactionInV struct {
-		TxID      string `json:"txid"`
-		Vout      int64  `json:"vout"`
-		ScriptSig struct {
-			Asm string `json:"asm"`
-			Hex string `json:"hex"`
-		} `json:"scriptSig"`
-		Txinwitness []string `json:"txinwitness"`
-		Sequence    int64    `json:"sequence"`
+		TxID        string                         `json:"txid"`
+		Vout        int64                          `json:"vout"`
+		ScriptSig   DecodedRawTransactionScriptSig `json:"scriptSig"`
+		Txinwitness []string                       `json:"txinwitness"`
+		Sequence    int64                          `json:"sequence"`
 	}
 
 	DecodedRawTransactionOutV struct {
-		Value        decimal.Decimal `json:"value"`
-		ValueSatoshi decimal.Decimal `json:"valueSat"`
-		N            int64           `json:"n"`
-		ScriptPubKey struct {
-			ASM       string   `json:"asm"`
-			Hex       string   `json:"hex"`
-			ReqSigs   int64    `json:"reqSigs"`
-			Type      string   `json:"type"`
-			Addresses []string `json:"addresses"`
-		} `json:"scriptPubKey"`
+		Value        decimal.Decimal                   `json:"value"`
+		ValueSatoshi decimal.Decimal                   `json:"valueSat"`
+		N            int64                             `json:"n"`
+		ScriptPubKey DecodedRawTransactionScriptPubKey `json:"scriptPubKey"`
+	}
+
+	// TODO: Make these two generic? Same struct is also present in other RPC data types
+	DecodedRawTransactionScriptSig struct {
+		Asm string `json:"asm"`
+		Hex string `json:"hex"`
+	}
+
+	DecodedRawTransactionScriptPubKey struct {
+		ASM       string   `json:"asm"`
+		Hex       string   `json:"hex"`
+		ReqSigs   int64    `json:"reqSigs"`
+		Type      string   `json:"type"`
+		Addresses []string `json:"addresses"`
 	}
 )
 
@@ -518,8 +523,13 @@ func (resp *DecodedRawTransactionResponse) ExtractContractInfo() (_ ContractInfo
 	var info *ContractInfo
 
 	for _, vout := range resp.Vouts {
+
+		scriptAsm, err := DisasmScript(vout.ScriptPubKey.Hex)
+		if err != nil {
+			return ContractInfo{}, false, errors.WithMessage(err, "failed to disasm script")
+		}
 		var (
-			script  = strings.Split(vout.ScriptPubKey.ASM, " ")
+			script  = strings.Split(scriptAsm, " ")
 			finalOp = script[len(script)-1]
 		)
 
@@ -538,14 +548,10 @@ func (resp *DecodedRawTransactionResponse) ExtractContractInfo() (_ ContractInfo
 				}
 			}
 			info = &ContractInfo{
-				From:     callInfo.From,
-				To:       callInfo.To,
-				GasLimit: callInfo.GasLimit,
-				GasPrice: callInfo.GasPrice,
-
-				// TODO: researching
-				GasUsed: "0x0",
-
+				From:      callInfo.From,
+				To:        callInfo.To,
+				GasLimit:  callInfo.GasLimit,
+				GasPrice:  callInfo.GasPrice,
 				UserInput: callInfo.CallData,
 			}
 
@@ -565,11 +571,8 @@ func (resp *DecodedRawTransactionResponse) ExtractContractInfo() (_ ContractInfo
 				}
 			}
 			info = &ContractInfo{
-				From: createInfo.From,
-				To:   createInfo.To,
-
-				// TODO: discuss
-				// ?! Not really "gas sent by user"
+				From:     createInfo.From,
+				To:       createInfo.To,
 				GasLimit: createInfo.GasLimit,
 
 				GasPrice: createInfo.GasPrice,
@@ -593,6 +596,7 @@ func (resp *DecodedRawTransactionResponse) ExtractContractInfo() (_ ContractInfo
 	}
 
 	return ContractInfo{}, false, nil
+
 }
 
 func (resp *DecodedRawTransactionResponse) IsContractCreation() bool {
@@ -604,6 +608,77 @@ func (resp *DecodedRawTransactionResponse) IsContractCreation() bool {
 	return false
 }
 
+// Get address from first OP_SENDER script operation found in Vouts, if any. Can also be used to check for presence of said op.
+// TODO: Refactor to use btcasm functionality as in func ExtractContractInfo above? Or just deprecate this func entirely, because it's only relevant for already handled contract TXs anyway?
+func (resp *DecodedRawTransactionResponse) GetOpSenderAddress() (address string, _ error) {
+	for _, vout := range resp.Vouts {
+		// OP_SENDER is only valid in scripts ending in ether OP_CREATE or OP_CALL
+		if strings.HasSuffix(vout.ScriptPubKey.ASM, "OP_CREATE") || strings.HasSuffix(vout.ScriptPubKey.ASM, "OP_CALL") {
+			var scriptChunks = strings.Split(vout.ScriptPubKey.ASM, " ")
+
+			// OP_CREATE prefixed by OP_SENDER always have this structure:
+			//
+			// 1    // address type of the pubkeyhash (public key hash)
+			// Address               // sender's pubkeyhash address
+			// {signature, pubkey}   //serialized scriptSig
+			// OP_SENDER
+			// 4                     // EVM version
+			// 100000                //gas limit
+			// 10                    //gas price
+			// 1234                  // data to be sent by the contract
+			// OP_CREATE
+			var isOpCreateWithOpSender = len(scriptChunks) == 9
+
+			// OP_CALL prefixed by OP_SENDER always have this structure:
+			//
+			// 1                     // address type of the pubkeyhash (public key hash)
+			// Address               // sender's pubkeyhash address
+			// {signature, pubkey}   // serialized scriptSig
+			// OP_SENDER
+			// 4                     // EVM version
+			// 100000                // gas limit
+			// 10                    // gas price
+			// 1234                  // data to be sent by the contract
+			// Contract Address      // contract address
+			// OP_CALL
+			var isOpCallWithOpSender = len(scriptChunks) == 10
+
+			// Note: This check isn't redundant with the initial opcode check, since both opcodes are valid without OP_SENDER prefix
+			if isOpCreateWithOpSender || isOpCallWithOpSender {
+				// Address type, only support 1 for now
+				// TODO: Instead of throeing an error, should it keep going to see if another Vout has OP_SENDER with a valid address?
+				// TODO: Is type "1" called "push data"?
+				// TODO: This should be logged according to task
+				if scriptChunks[0] != "1" {
+					return "", errors.New("OP_SENDER address if of invalid type (only type 1 is supported currently)")
+				}
+
+				// TODO: Is it necessary to check that the first three ASM entries are valid, as done in HtmlcoinJ?
+
+				// TODO: These following sanity checks are present in the HtmlcoinJ code used as reference, but will probably always pass for valid blockchain data.
+				// If Janus is stable and performance is a concern these can probably be safely removed
+				if scriptChunks[3] != "OP_SENDER" {
+					return "", errors.New("Expected opcode OP_SENDER missing or malformatted (This should probably never happen with valid blockchain data)")
+				}
+
+				if isOpCreateWithOpSender && scriptChunks[8] != "OP_CREATE" {
+					return "", errors.New("Expected opcode OP_CREATE missing or malformatted (This should probably never happen with valid blockchain data)")
+				}
+
+				if isOpCallWithOpSender && scriptChunks[9] != "OP_CALL" {
+					return "", errors.New("Expected opcode OP_CALL missing or malformatted (This should probably never happen with valid blockchain data)")
+				}
+
+				// TODO: This should already be in hex/eth format, but should we also add a hex prefix?
+				var opSenderAddress = scriptChunks[1]
+
+				return opSenderAddress, nil
+			}
+		}
+	}
+	return "", errors.New("No script with OP_SENDER found in Vouts")
+}
+
 // ========== GetTransactionOut ============= //
 type (
 	GetTransactionOutRequest struct {
@@ -611,6 +686,7 @@ type (
 		VoutNumber      int    `json:"n"`
 		MempoolIncluded bool   `json:"include_mempool"`
 	}
+	// TODO: Make ScriptPubKey into a separate struct (or use generic variant?) for ease of use?
 	GetTransactionOutResponse struct {
 		BestBlockHash    string  `json:"bestblock"`
 		ConfirmationsNum int     `json:"confirmations"`
@@ -832,27 +908,40 @@ type (
 		Amount        float64 `json:"value"`
 		AmountSatoshi int64   `json:"valueSat"`
 		Address       string  `json:"address"`
+		// TODO: temporary solution
+		ScriptSig DecodedRawTransactionScriptSig `json:"scriptSig"`
 
 		// Additional fields:
 		// - "scriptSig"
 		// - "sequence"
 		// - "txinwitness"
 	}
+	// TODO: Make details into a separate struct (or use generic scriptPubKey?) for ease of use?
 	RawTransactionVout struct {
-		Amount        float64 `json:"value"`
-		AmountSatoshi int64   `json:"valueSat"`
-		Details       struct {
-			Addresses []string `json:"addresses"`
-			Asm       string   `json:"asm"`
-			Hex       string   `json:"hex"`
-			// ReqSigs   interface{} `json:"reqSigs"`
-			Type string `json:"type"`
-		} `json:"scriptPubKey"`
+		Amount        float64                   `json:"value"`
+		AmountSatoshi int64                     `json:"valueSat"`
+		Details       RawTransactionVoutDetails `json:"scriptPubKey"`
 
 		// Additional fields:
 		// - "n"
 	}
+
+	RawTransactionVoutDetails struct {
+		Address   string   `json:"address"`
+		Addresses []string `json:"addresses"`
+		Asm       string   `json:"asm"`
+		Hex       string   `json:"hex"`
+		// ReqSigs   interface{} `json:"reqSigs"`
+		Type string `json:"type"`
+	}
 )
+
+func (d *RawTransactionVoutDetails) GetAddresses() []string {
+	if len(d.Address) != 0 {
+		return []string{d.Address}
+	}
+	return d.Addresses[:]
+}
 
 func (r *GetRawTransactionRequest) MarshalJSON() ([]byte, error) {
 	/*
@@ -1326,7 +1415,7 @@ func (r *GetBlockRequest) MarshalJSON() ([]byte, error) {
 	})
 }
 
-//========CreateRawTransaction=========//
+// ========CreateRawTransaction=========//
 type (
 	/*
 				Arguments:
@@ -1377,7 +1466,7 @@ type (
 	}
 )
 
-//========SignRawTransactionWithKey=========//
+// ========SignRawTransactionWithKey=========//
 type (
 	/*
 			Result:
@@ -1761,7 +1850,7 @@ type (
 		Subversion         string                    `json:"subversion"`
 		ProtocolVersion    int64                     `json:"protocolversion"`
 		LocalServices      string                    `json:"localservices"`
-		LocalServicesNames []string                  `json:"localservicesnames`
+		LocalServicesNames []string                  `json:"localservicesnames"`
 		LocalRelay         bool                      `json:"localrelay"`
 		TimeOffset         int64                     `json:"timeoffset"`
 		Connections        int64                     `json:"connections"`
@@ -1792,7 +1881,7 @@ type (
 type (
 	WaitForLogsRequest struct {
 		FromBlock            interface{}       `json:"fromBlock"`
-		ToBlock              interface{}       `json:"toBlock`
+		ToBlock              interface{}       `json:"toBlock"`
 		Filter               WaitForLogsFilter `json:"filter"`
 		MinimumConfirmations int64             `json:"miniconf"`
 	}
@@ -1889,3 +1978,21 @@ func (r *WaitForLogsRequest) MarshalJSON() ([]byte, error) {
 		r.MinimumConfirmations,
 	})
 }
+
+// ========= createwallet ========== //
+type (
+	CreateWalletRequest  []string
+	CreateWalletResponse struct {
+		Name    string `json:"name"`
+		Warning string `json:"warning"`
+	}
+)
+
+// ========= loadwallet ========== //
+type (
+	LoadWalletRequest  []string
+	LoadWalletResponse struct {
+		Name    string `json:"name"`
+		Warning string `json:"warning"`
+	}
+)

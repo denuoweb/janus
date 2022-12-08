@@ -3,7 +3,6 @@ package transformer
 import (
 	"encoding/json"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -34,18 +33,12 @@ func TestBlockNumberRequest(t *testing.T) {
 
 	//preparing proxy & executing request
 	proxyEth := ProxyETHBlockNumber{htmlcoinClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	want := eth.BlockNumberResponse("0xac31a4")
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			want,
-			got,
-		)
-	}
+
+	internal.CheckTestResultEthRequestRPC(*request, &want, got, t, false)
 }

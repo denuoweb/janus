@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/internal"
@@ -24,22 +23,10 @@ func testETHProxyRequest(t *testing.T, initializer ETHProxyInitializer, requestP
 
 	//preparing proxy & executing request
 	proxyEth := initializer(htmlcoinClient)
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatalf("Failed to process request on %T.Request(%s): %s", proxyEth, requestParams, jsonErr)
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		wantString := string(internal.MustMarshalIndent(want, "", "  "))
-		gotString := string(internal.MustMarshalIndent(got, "", "  "))
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			wantString,
-			gotString,
-		)
-		if wantString == gotString {
-			t.Errorf("Want and Got are equal strings but !DeepEqual, probably differ in types (%T ?= %T)", want, got)
-		}
-	}
+	internal.CheckTestResultEthRequestRPC(*request, want, got, t, false)
 }

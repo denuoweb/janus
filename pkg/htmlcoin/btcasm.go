@@ -1,10 +1,12 @@
 package htmlcoin
 
 import (
+	"encoding/hex"
 	"fmt"
-	"math/big"
+	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/htmlcoin/btcd/txscript"
 )
 
 type (
@@ -22,10 +24,6 @@ func ParseCallASM(parts []string) (*ContractInvokeInfo, error) {
 
 	// "4 25548 40 8588b2c50000000000000000000000000000000000000000000000000000000000000000 57946bb437560b13275c32a468c6fd1e0c2cdd48 OP_CAL"
 
-	if len(parts) != 6 {
-		return nil, errors.New(fmt.Sprintf("invalid OP_CALL script for parts 6: %v", parts))
-	}
-
 	// 4                     // EVM version
 	// 100000                // gas limit
 	// 10                    // gas price
@@ -33,19 +31,17 @@ func ParseCallASM(parts []string) (*ContractInvokeInfo, error) {
 	// Contract Address      // contract address
 	// OP_CALL
 
-	gasLimit, err := stringBase10ToHex(parts[1])
-	if err != nil {
-		return nil, err
+	if len(parts) != 6 {
+		return nil, errors.New(fmt.Sprintf("invalid OP_CALL script for parts 6: %v", parts))
 	}
 
-	gasPrice, err := stringBase10ToHex(parts[2])
+	gasLimit, err := convertToBigEndian(parts[1])
 	if err != nil {
 		return nil, err
 	}
 
 	return &ContractInvokeInfo{
-		// From:     parts[1],
-		GasPrice: gasPrice,
+		GasPrice: parts[2],
 		GasLimit: gasLimit,
 		CallData: parts[3],
 		To:       parts[4],
@@ -73,19 +69,14 @@ func ParseCallSenderASM(parts []string) (*ContractInvokeInfo, error) {
 	// Contract Address      // contract address
 	// OP_CALL
 
-	gasLimit, err := stringBase10ToHex(parts[5])
-	if err != nil {
-		return nil, err
-	}
-
-	gasPrice, err := stringBase10ToHex(parts[6])
+	gasLimit, err := convertToBigEndian(parts[5])
 	if err != nil {
 		return nil, err
 	}
 
 	return &ContractInvokeInfo{
 		From:     parts[1],
-		GasPrice: gasPrice,
+		GasPrice: parts[6],
 		GasLimit: gasLimit,
 		CallData: parts[7],
 		To:       parts[8],
@@ -105,19 +96,15 @@ func ParseCreateASM(parts []string) (*ContractInvokeInfo, error) {
 		return nil, errors.New(fmt.Sprintf("invalid OP_CREATE script for parts 5: %v", len(parts)))
 	}
 
-	gasLimit, err := stringBase10ToHex(parts[1])
+	gasLimit, err := convertToBigEndian(parts[1])
 	if err != nil {
 		return nil, err
 	}
-	gasPrice, err := stringBase10ToHex(parts[2])
-	if err != nil {
-		return nil, err
-	}
+
 	info := &ContractInvokeInfo{
-		// From:     parts[1],
-		GasPrice: gasPrice,
+		GasPrice: parts[2],
 		GasLimit: gasLimit,
-		CallData: parts[4],
+		CallData: parts[3],
 	}
 	return info, nil
 
@@ -125,7 +112,7 @@ func ParseCreateASM(parts []string) (*ContractInvokeInfo, error) {
 
 func ParseCreateSenderASM(parts []string) (*ContractInvokeInfo, error) {
 	// See: https://github.com/htmlcoin/qips/issues/6
-	// https://blog.qtum.org/qip-5-add-op-sender-opcode-571511802938
+	// https://blog.htmlcoin.org/qip-5-add-op-sender-opcode-571511802938
 
 	// "1 7926223070547d2d15b2ef5e7383e541c338ffe9 6a473044022067ca66b0308ae16aeca7a205ce0490b44a61feebe5632710b52aabde197f9e4802200e8beec61a58dbe1279a9cdb68983080052ae7b9997bc863b7c5623e4cb55fd
 	// b01210299d391f528b9edd07284c7e23df8415232a8ce41531cf460a390ce32b4efd112 OP_SENDER 4 6721975 100 6060604052341561000f57600080fd5b60008054600160a060020a033316600160a060020a03199091161790556101de8061003b6000
@@ -149,29 +136,42 @@ func ParseCreateSenderASM(parts []string) (*ContractInvokeInfo, error) {
 		return nil, errors.New(fmt.Sprintf("invalid create_sender script for parts 9: %v", len(parts)))
 	}
 
-	gasLimit, err := stringBase10ToHex(parts[5])
+	gasLimit, err := convertToBigEndian(parts[5])
 	if err != nil {
 		return nil, err
 	}
-	gasPrice, err := stringBase10ToHex(parts[6])
-	if err != nil {
-		return nil, err
-	}
+
 	info := &ContractInvokeInfo{
 		From:     parts[1],
-		GasPrice: gasPrice,
+		GasPrice: parts[6],
 		GasLimit: gasLimit,
 		CallData: parts[7],
 	}
 	return info, nil
 }
 
-func stringBase10ToHex(str string) (string, error) {
-	var v big.Int
-	_, ok := v.SetString(str, 10)
-	if !ok {
-		return "", errors.Errorf("Failed to parse big.Int: %s", str)
+// function disasm converts the hex string (from the pubkey) to an asm string
+func DisasmScript(scriptHex string) (string, error) {
+	scriptBytes, err := hex.DecodeString(scriptHex)
+	if err != nil {
+		return "", err
 	}
+	disasm, err := txscript.DisasmString(scriptBytes)
+	if err != nil {
+		return "", err
+	}
+	return disasm, nil
+}
 
-	return v.Text(16), nil
+// convertToBigEndian is a helper function to convert 'gasLimit' hex to big endian
+func convertToBigEndian(hex string) (string, error) {
+	if len(hex)%2 != 0 {
+		return "", fmt.Errorf("invalid hex string")
+	}
+	var result string
+	for i := len(hex); i > 0; i -= 2 {
+		result += hex[i-2 : i]
+	}
+	// trim leading zeros before returning
+	return strings.TrimLeft(result, "0"), nil
 }

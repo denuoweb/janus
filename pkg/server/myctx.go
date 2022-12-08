@@ -8,16 +8,21 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/labstack/echo"
+	"github.com/htmlcoin/janus/pkg/analytics"
+	"github.com/htmlcoin/janus/pkg/blockhash"
 	"github.com/htmlcoin/janus/pkg/eth"
 	"github.com/htmlcoin/janus/pkg/transformer"
 )
 
 type myCtx struct {
 	echo.Context
-	rpcReq      *eth.JSONRPCRequest
-	logWriter   io.Writer
-	logger      log.Logger
-	transformer *transformer.Transformer
+	rpcReq        *eth.JSONRPCRequest
+	logWriter     io.Writer
+	logger        log.Logger
+	transformer   *transformer.Transformer
+	blockHash     *blockhash.BlockHash
+	htmlcoinAnalytics *analytics.Analytics
+	ethAnalytics  *analytics.Analytics
 }
 
 func (c *myCtx) GetJSONRPCResult(result interface{}) (*eth.JSONRPCResult, error) {

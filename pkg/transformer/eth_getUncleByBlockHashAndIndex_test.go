@@ -16,16 +16,12 @@ func TestGetUncleByBlockHashAndIndexReturnsNil(t *testing.T) {
 	}
 
 	proxyEth := ETHGetUncleByBlockHashAndIndex{}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
-	if got != nil {
-		t.Errorf(
-			"error\ninput: %s\nwant: nil\ngot: %s",
-			*request,
-			got,
-		)
-	}
+	want := interface{}(nil)
+
+	internal.CheckTestResultEthRequestRPC(*request, want, got, t, false)
 }

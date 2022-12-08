@@ -12,43 +12,40 @@
 <script>
 let HTMLCOINMainnet = {
   chainId: '0x115C', // 4444
-  chainName: 'HTMLCOIN Mainnet',
+  chainName: 'Htmlcoin Mainnet',
   rpcUrls: ['https://janus.htmlcoin.com/api/'],
-  blockExplorerUrls: ['https://info.htmlcoin.com/'],
+  blockExplorerUrls: ['https://explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://htmlcoin.com/images/metamask_icon.svg',
-    'https://htmlcoin.com/images/metamask_icon.png',
+    'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',
   ],
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     symbol: 'HTML',
   },
 };
 let HTMLCOINTestNet = {
   chainId: '0x115D', // 4445
-  chainName: 'HTMLCOIN Testnet',
-  rpcUrls: ['https://testnet-janus.htmlcoin.com/api/'],
-  blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
+  chainName: 'Htmlcoin Testnet',
+  rpcUrls: ['https://testnet.htmlcoin.com/janus/'],
+  blockExplorerUrls: ['https://testnet.htmlcoin.com/'],
   iconUrls: [
-    'https://htmlcoin.com/images/metamask_icon.svg',
-    'https://htmlcoin.com/images/metamask_icon.png',
+    'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',
   ],
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     symbol: 'HTML',
   },
 };
 let HTMLCOINRegTest = {
   chainId: '0x115E', // 4446
-  chainName: 'HTMLCOIN Regtest',
+  chainName: 'Htmlcoin Regtest',
   rpcUrls: ['https://localhost:24889'],
   // blockExplorerUrls: ['https://testnet-explorer.htmlcoin.com/'],
   iconUrls: [
-    'https://htmlcoin.com/images/metamask_icon.svg',
-    'https://htmlcoin.com/images/metamask_icon.png',
+    'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',
   ],
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     symbol: 'HTML',
   },
 };

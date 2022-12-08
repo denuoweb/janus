@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/internal"
@@ -24,18 +23,12 @@ func TestGasPriceRequest(t *testing.T) {
 
 	//preparing proxy & executing request
 	proxyEth := ProxyETHGasPrice{htmlcoinClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
-	want := string("0x9502f9000") //price is hardcoded inside the implement
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			want,
-			got,
-		)
-	}
+	want := string("0x5d21dba000") //price is hardcoded inside the implement
+
+	internal.CheckTestResultDefault(want, got, t, false)
 }

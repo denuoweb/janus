@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -31,19 +30,12 @@ func TestMiningRequest(t *testing.T) {
 	}
 
 	proxyEth := ProxyETHMining{htmlcoinClient}
-	got, jsonErr := proxyEth.Request(request, nil)
+	got, jsonErr := proxyEth.Request(request, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	want := eth.MiningResponse(true)
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %t\ngot: %t",
-			request,
-			want,
-			got,
-		)
-	}
 
+	internal.CheckTestResultEthRequestRPC(*request, &want, got, t, false)
 }

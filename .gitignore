@@ -51,5 +51,4 @@ testing/testing
 playground/pet-shop-tutorial/dist
 playground/pet-shop-tutorial/js/Adoption.json
 playground/pet-shop-tutorial/js/Migrations.json
-playground/pet-shop-tutorial/js/QRC20Token.json
-
+playground/pet-shop-tutorial/js/HRC20Token.json

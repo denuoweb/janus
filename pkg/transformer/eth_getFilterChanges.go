@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 
@@ -31,9 +32,9 @@ func (p *ProxyETHGetFilterChanges) Request(rawreq *eth.JSONRPCRequest, c echo.Co
 
 	switch filter.Type {
 	case eth.NewFilterTy:
-		return p.requestFilter(filter)
+		return p.requestFilter(c.Request().Context(), filter)
 	case eth.NewBlockFilterTy:
-		return p.requestBlockFilter(filter)
+		return p.requestBlockFilter(c.Request().Context(), filter)
 	case eth.NewPendingTransactionFilterTy:
 		fallthrough
 	default:
@@ -41,7 +42,7 @@ func (p *ProxyETHGetFilterChanges) Request(rawreq *eth.JSONRPCRequest, c echo.Co
 	}
 }
 
-func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
+func (p *ProxyETHGetFilterChanges) requestBlockFilter(ctx context.Context, filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
 	htmlcoinresp = make(eth.GetFilterChangesResponse, 0)
 
 	_lastBlockNumber, ok := filter.Data.Load("lastBlockNumber")
@@ -50,7 +51,7 @@ func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (htmlc
 	}
 	lastBlockNumber := _lastBlockNumber.(uint64)
 
-	blockCountBigInt, blockErr := p.GetBlockCount()
+	blockCountBigInt, blockErr := p.GetBlockCount(ctx)
 	if blockErr != nil {
 		return htmlcoinresp, eth.NewCallbackError(blockErr.Error())
 	}
@@ -62,7 +63,7 @@ func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (htmlc
 	for i := range hashes {
 		blockNumber := new(big.Int).SetUint64(lastBlockNumber + uint64(i) + 1)
 
-		resp, err := p.GetBlockHash(blockNumber)
+		resp, err := p.GetBlockHash(ctx, blockNumber)
 		if err != nil {
 			return htmlcoinresp, eth.NewCallbackError(err.Error())
 		}
@@ -75,7 +76,7 @@ func (p *ProxyETHGetFilterChanges) requestBlockFilter(filter *eth.Filter) (htmlc
 	return
 }
 
-func (p *ProxyETHGetFilterChanges) requestFilter(filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
+func (p *ProxyETHGetFilterChanges) requestFilter(ctx context.Context, filter *eth.Filter) (htmlcoinresp eth.GetFilterChangesResponse, err eth.JSONRPCError) {
 	htmlcoinresp = make(eth.GetFilterChangesResponse, 0)
 
 	_lastBlockNumber, ok := filter.Data.Load("lastBlockNumber")
@@ -84,7 +85,7 @@ func (p *ProxyETHGetFilterChanges) requestFilter(filter *eth.Filter) (htmlcoinre
 	}
 	lastBlockNumber := _lastBlockNumber.(uint64)
 
-	blockCountBigInt, blockErr := p.GetBlockCount()
+	blockCountBigInt, blockErr := p.GetBlockCount(ctx)
 	if blockErr != nil {
 		return htmlcoinresp, eth.NewCallbackError(blockErr.Error())
 	}
@@ -101,11 +102,11 @@ func (p *ProxyETHGetFilterChanges) requestFilter(filter *eth.Filter) (htmlcoinre
 		return nil, err
 	}
 
-	return p.doSearchLogs(searchLogsReq)
+	return p.doSearchLogs(ctx, searchLogsReq)
 }
 
-func (p *ProxyETHGetFilterChanges) doSearchLogs(req *htmlcoin.SearchLogsRequest) (eth.GetFilterChangesResponse, eth.JSONRPCError) {
-	resp, err := conversion.SearchLogsAndFilterExtraTopics(p.Htmlcoin, req)
+func (p *ProxyETHGetFilterChanges) doSearchLogs(ctx context.Context, req *htmlcoin.SearchLogsRequest) (eth.GetFilterChangesResponse, eth.JSONRPCError) {
+	resp, err := conversion.SearchLogsAndFilterExtraTopics(ctx, p.Htmlcoin, req)
 	if err != nil {
 		return nil, err
 	}

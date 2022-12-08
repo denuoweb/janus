@@ -2,7 +2,6 @@ package transformer
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -65,20 +64,14 @@ func TestEstimateGasRequest(t *testing.T) {
 	//preparing proxy & executing request
 	proxyEth := ProxyETHCall{htmlcoinClient}
 	proxyEthEstimateGas := ProxyETHEstimateGas{&proxyEth}
-	got, jsonErr := proxyEthEstimateGas.Request(requestRPC, nil)
+	got, jsonErr := proxyEthEstimateGas.Request(requestRPC, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
-	want := eth.EstimateGasResponse("0x5d25")
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			string(internal.MustMarshalIndent(want, "", "  ")),
-			string(internal.MustMarshalIndent(got, "", "  ")),
-		)
-	}
+	want := eth.EstimateGasResponse("0x659d")
+
+	internal.CheckTestResultEthRequestCall(request, &want, got, t, false)
 }
 
 func TestEstimateGasRequestExecutionReverted(t *testing.T) {
@@ -136,20 +129,12 @@ func TestEstimateGasRequestExecutionReverted(t *testing.T) {
 	//preparing proxy & executing request
 	proxyEth := ProxyETHCall{htmlcoinClient}
 	proxyEthEstimateGas := ProxyETHEstimateGas{&proxyEth}
-	_, got := proxyEthEstimateGas.Request(requestRPC, nil)
-	if got == nil {
-		t.Fatal("Expected error")
-	}
+
+	_, got := proxyEthEstimateGas.Request(requestRPC, internal.NewEchoContext())
 
 	want := eth.NewCallbackError(ErrExecutionReverted.Error())
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			string(internal.MustMarshalIndent(want, "", "  ")),
-			string(internal.MustMarshalIndent(got, "", "  ")),
-		)
-	}
+
+	internal.CheckTestResultDefault(want, got, t, false)
 }
 
 func TestEstimateGasNonVMRequest(t *testing.T) {
@@ -206,18 +191,12 @@ func TestEstimateGasNonVMRequest(t *testing.T) {
 	//preparing proxy & executing request
 	proxyEth := ProxyETHCall{htmlcoinClient}
 	proxyEthEstimateGas := ProxyETHEstimateGas{&proxyEth}
-	got, jsonErr := proxyEthEstimateGas.Request(requestRPC, nil)
+	got, jsonErr := proxyEthEstimateGas.Request(requestRPC, internal.NewEchoContext())
 	if jsonErr != nil {
 		t.Fatal(jsonErr)
 	}
 
 	want := eth.EstimateGasResponse(NonContractVMGasLimit)
-	if !reflect.DeepEqual(got, &want) {
-		t.Errorf(
-			"error\ninput: %s\nwant: %s\ngot: %s",
-			request,
-			string(internal.MustMarshalIndent(want, "", "  ")),
-			string(internal.MustMarshalIndent(got, "", "  ")),
-		)
-	}
+
+	internal.CheckTestResultEthRequestCall(request, &want, got, t, false)
 }

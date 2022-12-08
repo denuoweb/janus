@@ -12,7 +12,8 @@ import (
 var NonContractVMGasLimit = "0x55f0"
 var ErrExecutionReverted = errors.New("execution reverted")
 
-var GAS_BUFFER = 1.10
+// 10% isn't enough in some cases, neither is 15%, 20% works
+var GAS_BUFFER = 1.20
 
 // ProxyETHEstimateGas implements ETHProxy
 type ProxyETHEstimateGas struct {
@@ -51,7 +52,7 @@ func (p *ProxyETHEstimateGas) Request(rawreq *eth.JSONRPCRequest, c echo.Context
 	}
 
 	// htmlcoin [code: -5] Incorrect address occurs here
-	htmlcoinresp, err := p.CallContract(htmlcoinreq)
+	htmlcoinresp, err := p.CallContract(c.Request().Context(), htmlcoinreq)
 	if err != nil {
 		return nil, eth.NewCallbackError(err.Error())
 	}

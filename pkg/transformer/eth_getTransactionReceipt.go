@@ -1,6 +1,8 @@
 package transformer
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -36,13 +38,13 @@ func (p *ProxyETHGetTransactionReceipt) Request(rawreq *eth.JSONRPCRequest, c ec
 		txHash  = utils.RemoveHexPrefix(string(req))
 		htmlcoinReq = htmlcoin.GetTransactionReceiptRequest(txHash)
 	)
-	return p.request(&htmlcoinReq)
+	return p.request(c.Request().Context(), &htmlcoinReq)
 }
 
-func (p *ProxyETHGetTransactionReceipt) request(req *htmlcoin.GetTransactionReceiptRequest) (*eth.GetTransactionReceiptResponse, eth.JSONRPCError) {
-	htmlcoinReceipt, err := p.Htmlcoin.GetTransactionReceipt(string(*req))
+func (p *ProxyETHGetTransactionReceipt) request(ctx context.Context, req *htmlcoin.GetTransactionReceiptRequest) (*eth.GetTransactionReceiptResponse, eth.JSONRPCError) {
+	htmlcoinReceipt, err := p.Htmlcoin.GetTransactionReceipt(ctx, string(*req))
 	if err != nil {
-		ethTx, _, getRewardTransactionErr := getRewardTransactionByHash(p.Htmlcoin, string(*req))
+		ethTx, _, getRewardTransactionErr := getRewardTransactionByHash(ctx, p.Htmlcoin, string(*req))
 		if getRewardTransactionErr != nil {
 			errCause := errors.Cause(err)
 			if errCause == htmlcoin.EmptyResponseErr {
@@ -50,6 +52,11 @@ func (p *ProxyETHGetTransactionReceipt) request(req *htmlcoin.GetTransactionRece
 			}
 			p.Htmlcoin.GetDebugLogger().Log("msg", "Transaction does not exist", "txid", string(*req))
 			return nil, eth.NewCallbackError(err.Error())
+		}
+		if ethTx == nil {
+			// unconfirmed tx, return nil
+			// https://github.com/openethereum/parity-ethereum/issues/3482
+			return nil, nil
 		}
 		return &eth.GetTransactionReceiptResponse{
 			TransactionHash:  ethTx.Hash,
@@ -75,6 +82,7 @@ func (p *ProxyETHGetTransactionReceipt) request(req *htmlcoin.GetTransactionRece
 		BlockNumber:       hexutil.EncodeUint64(htmlcoinReceipt.BlockNumber),
 		ContractAddress:   utils.AddHexPrefixIfNotEmpty(htmlcoinReceipt.ContractAddress),
 		CumulativeGasUsed: hexutil.EncodeUint64(htmlcoinReceipt.CumulativeGasUsed),
+		EffectiveGasPrice: "0x0",
 		GasUsed:           hexutil.EncodeUint64(htmlcoinReceipt.GasUsed),
 		From:              utils.AddHexPrefixIfNotEmpty(htmlcoinReceipt.From),
 		To:                utils.AddHexPrefixIfNotEmpty(htmlcoinReceipt.To),
@@ -95,12 +103,12 @@ func (p *ProxyETHGetTransactionReceipt) request(req *htmlcoin.GetTransactionRece
 	r := htmlcoin.TransactionReceipt(*htmlcoinReceipt)
 	ethReceipt.Logs = conversion.ExtractETHLogsFromTransactionReceipt(&r, r.Log)
 
-	htmlcoinTx, err := p.Htmlcoin.GetRawTransaction(htmlcoinReceipt.TransactionHash, false)
+	htmlcoinTx, err := p.Htmlcoin.GetRawTransaction(ctx, htmlcoinReceipt.TransactionHash, false)
 	if err != nil {
 		p.GetDebugLogger().Log("msg", "couldn't get transaction", "err", err)
 		return nil, eth.NewCallbackError("couldn't get transaction")
 	}
-	decodedRawHtmlcoinTx, err := p.Htmlcoin.DecodeRawTransaction(htmlcoinTx.Hex)
+	decodedRawHtmlcoinTx, err := p.Htmlcoin.DecodeRawTransaction(ctx, htmlcoinTx.Hex)
 	if err != nil {
 		p.GetDebugLogger().Log("msg", "couldn't decode raw transaction", "err", err)
 		return nil, eth.NewCallbackError("couldn't decode raw transaction")

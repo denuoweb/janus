@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -16,6 +18,8 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/pkg/errors"
+	"github.com/htmlcoin/janus/pkg/analytics"
+	"github.com/htmlcoin/janus/pkg/blockhash"
 	"github.com/htmlcoin/janus/pkg/eth"
 	"github.com/htmlcoin/janus/pkg/htmlcoin"
 	"github.com/htmlcoin/janus/pkg/transformer"
@@ -32,6 +36,15 @@ type Server struct {
 	debug         bool
 	mutex         *sync.Mutex
 	echo          *echo.Echo
+	blockHash     *blockhash.BlockHash
+
+	htmlcoinRequestAnalytics *analytics.Analytics
+	ethRequestAnalytics  *analytics.Analytics
+
+	blocksMutex     sync.RWMutex
+	lastBlock       int64
+	nextBlockCheck  *time.Time
+	lastBlockStatus error
 }
 
 func New(
@@ -40,15 +53,29 @@ func New(
 	addr string,
 	opts ...Option,
 ) (*Server, error) {
+	requests := 50
+
 	p := &Server{
-		logger:        log.NewNopLogger(),
-		echo:          echo.New(),
-		address:       addr,
-		htmlcoinRPCClient: htmlcoinRPCClient,
-		transformer:   transformer,
+		logger:              log.NewNopLogger(),
+		echo:                echo.New(),
+		address:             addr,
+		htmlcoinRPCClient:       htmlcoinRPCClient,
+		transformer:         transformer,
+		ethRequestAnalytics: analytics.NewAnalytics(requests),
 	}
 
-	var err error
+	blockHashProcessor, err := blockhash.NewBlockHash(
+		htmlcoinRPCClient.GetContext(),
+		func() log.Logger {
+			return p.htmlcoinRPCClient.GetLogger()
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	p.blockHash = blockHashProcessor
+
 	for _, opt := range opts {
 		if err = opt(p); err != nil {
 			return nil, err
@@ -64,6 +91,10 @@ func (s *Server) Start() error {
 
 	health := healthcheck.NewHandler()
 	health.AddLivenessCheck("htmlcoind-connection", func() error { return s.testConnectionToHtmlcoind() })
+	health.AddLivenessCheck("htmlcoind-logevents-enabled", func() error { return s.testLogEvents() })
+	health.AddLivenessCheck("htmlcoind-blocks-syncing", func() error { return s.testBlocksSyncing() })
+	health.AddLivenessCheck("htmlcoind-error-rate", func() error { return s.testHtmlcoindErrorRate() })
+	health.AddLivenessCheck("janus-error-rate", func() error { return s.testJanusErrorRate() })
 
 	e.Use(middleware.CORS())
 	e.Use(middleware.BodyDump(func(c echo.Context, req []byte, res []byte) {
@@ -91,13 +122,17 @@ func (s *Server) Start() error {
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cc := &myCtx{
-				Context:     c,
-				logWriter:   logWriter,
-				logger:      s.logger,
-				transformer: s.transformer,
+				Context:       c,
+				logWriter:     logWriter,
+				logger:        s.logger,
+				transformer:   s.transformer,
+				blockHash:     s.blockHash,
+				htmlcoinAnalytics: s.htmlcoinRequestAnalytics,
+				ethAnalytics:  s.ethRequestAnalytics,
 			}
 
 			c.Set("myctx", cc)
+			c.Set("blockHash", cc.blockHash)
 
 			return h(c)
 		}
@@ -133,16 +168,44 @@ func (s *Server) Start() error {
 	}
 
 	https := (s.httpsKey != "" && s.httpsCert != "")
-	// TODO: Upgrade golang to 1.15 to support s.htmlcoinRPCClient.GetURL().Redacted() here
-	url := s.htmlcoinRPCClient.URL
+	url := s.htmlcoinRPCClient.GetURL().Redacted()
 	level.Info(s.logger).Log("listen", s.address, "htmlcoin_rpc", url, "msg", "proxy started", "https", https)
+
+	var err error
+
+	// shutdown echo server when context ends
+	go func(ctx context.Context, e *echo.Echo) {
+		<-ctx.Done()
+		e.Close()
+	}(s.htmlcoinRPCClient.GetContext(), e)
+
+	if s.htmlcoinRPCClient.DbConfig.String() == "" {
+		level.Warn(s.logger).Log("msg", "Database not configured - won't be able to respond to Ethereum block hash requests")
+	} else {
+		chainIdChan := make(chan int, 1)
+		err := s.blockHash.Start(&s.htmlcoinRPCClient.DbConfig, chainIdChan)
+		if err != nil {
+			level.Error(s.logger).Log("msg", "Failed to launch block hash converter", "error", err)
+			/*
+				level.Error(s.logger).Log("msg", "Failed to connect to database, quitting")
+				e.Close()
+				return errors.Wrap(err, "Failed to connect to database")
+			*/
+		}
+
+		go func() {
+			chainIdChan <- s.htmlcoinRPCClient.ChainId()
+		}()
+	}
 
 	if https {
 		level.Info(s.logger).Log("msg", "SSL enabled")
-		return e.StartTLS(s.address, s.httpsCert, s.httpsKey)
+		err = e.StartTLS(s.address, s.httpsCert, s.httpsKey)
 	} else {
-		return e.Start(s.address)
+		err = e.Start(s.address)
 	}
+
+	return err
 }
 
 type Option func(*Server) error
@@ -183,6 +246,13 @@ func SetHttps(key string, cert string) Option {
 	return func(p *Server) error {
 		p.httpsKey = key
 		p.httpsCert = cert
+		return nil
+	}
+}
+
+func SetHtmlcoinAnalytics(analytics *analytics.Analytics) Option {
+	return func(p *Server) error {
+		p.htmlcoinRequestAnalytics = analytics
 		return nil
 	}
 }
@@ -246,10 +316,13 @@ func callHttpHandler(cc *myCtx, req *eth.JSONRPCRequest) (*eth.JSONRPCResult, er
 
 	newCtx := cc.Echo().NewContext(httpreq, rec)
 	myCtx := &myCtx{
-		Context:     newCtx,
-		logWriter:   cc.GetLogWriter(),
-		logger:      cc.logger,
-		transformer: cc.transformer,
+		Context:       newCtx,
+		logWriter:     cc.GetLogWriter(),
+		logger:        cc.logger,
+		transformer:   cc.transformer,
+		blockHash:     cc.blockHash,
+		htmlcoinAnalytics: cc.htmlcoinAnalytics,
+		ethAnalytics:  cc.ethAnalytics,
 	}
 	newCtx.Set("myctx", myCtx)
 	if err = httpHandler(myCtx); err != nil {

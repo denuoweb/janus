@@ -1,8 +1,10 @@
 package transformer
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
@@ -35,11 +37,11 @@ func (p *ProxyETHGetTransactionByHash) Request(req *eth.JSONRPCRequest, c echo.C
 	htmlcoinReq := &htmlcoin.GetTransactionRequest{
 		TxID: utils.RemoveHexPrefix(string(txHash)),
 	}
-	return p.request(htmlcoinReq)
+	return p.request(c.Request().Context(), htmlcoinReq)
 }
 
-func (p *ProxyETHGetTransactionByHash) request(req *htmlcoin.GetTransactionRequest) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
-	ethTx, err := getTransactionByHash(p.Htmlcoin, req.TxID)
+func (p *ProxyETHGetTransactionByHash) request(ctx context.Context, req *htmlcoin.GetTransactionRequest) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
+	ethTx, err := getTransactionByHash(ctx, p.Htmlcoin, req.TxID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,24 +49,31 @@ func (p *ProxyETHGetTransactionByHash) request(req *htmlcoin.GetTransactionReque
 }
 
 // TODO: think of returning flag if it's a reward transaction for miner
-func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
-	htmlcoinTx, err := p.GetTransaction(hash)
+//
+// FUTURE WORK: It might be possible to simplify this (and other?) translation by using a single verbose getblock htmlcoin RPC command,
+// since it returns a lot of data including the equivalent of calling GetRawTransaction on every transaction in block.
+// The last point is of particular interest because GetRawTransaction doesn't by default work for every transaction.
+// This would mean fetching a lot of probably unnecessary data, but in this setup query response delay is reasonably the biggest bottleneck anyway
+func getTransactionByHash(ctx context.Context, p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactionByHashResponse, eth.JSONRPCError) {
+	htmlcoinTx, err := p.GetTransaction(ctx, hash)
 	var ethTx *eth.GetTransactionByHashResponse
 	if err != nil {
 		if errors.Cause(err) != htmlcoin.ErrInvalidAddress {
+			p.GetDebugLogger().Log("msg", "Failed to GetTransaction", "hash", hash, "err", err)
 			return nil, eth.NewCallbackError(err.Error())
 		}
 		var rawHtmlcoinTx *htmlcoin.GetRawTransactionResponse
-		ethTx, rawHtmlcoinTx, err = getRewardTransactionByHash(p, hash)
+		ethTx, rawHtmlcoinTx, err = getRewardTransactionByHash(ctx, p, hash)
 		if err != nil {
 			if errors.Cause(err) == htmlcoin.ErrInvalidAddress {
 				return nil, nil
 			}
-			rawTx, err := p.GetRawTransaction(hash, false)
+			rawTx, err := p.GetRawTransaction(ctx, hash, false)
 			if err != nil {
 				if errors.Cause(err) == htmlcoin.ErrInvalidAddress {
 					return nil, nil
 				}
+				p.GetDebugLogger().Log("msg", "Failed to GetRawTransaction", "hash", hash, "err", err)
 				return nil, eth.NewCallbackError(err.Error())
 			} else {
 				p.GetDebugLogger().Log("msg", "Got raw transaction by hash")
@@ -82,10 +91,10 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 			}
 		}
 
-		// return ethTx, nil
 	}
-	htmlcoinDecodedRawTx, err := p.DecodeRawTransaction(htmlcoinTx.Hex)
+	htmlcoinDecodedRawTx, err := p.DecodeRawTransaction(ctx, htmlcoinTx.Hex)
 	if err != nil {
+		p.GetDebugLogger().Log("msg", "Failed to DecodeRawTransaction", "hex", htmlcoinTx.Hex, "err", err)
 		return nil, eth.NewCallbackError("couldn't get raw transaction")
 	}
 
@@ -94,12 +103,10 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 			Hash:  utils.AddHexPrefix(htmlcoinDecodedRawTx.ID),
 			Nonce: "0x0",
 
-			// TODO: researching
-			// ? Do we need those values
-			//! Added for go-ethereum client support
-			V: "0x0",
-			R: "0x0",
-			S: "0x0",
+			// Added for go-ethereum client and graph-node support
+			R: "0xf000000000000000000000000000000000000000000000000000000000000000",
+			S: "0xf000000000000000000000000000000000000000000000000000000000000000",
+			V: "0x25",
 
 			Gas:      "0x0",
 			GasPrice: "0x0",
@@ -107,8 +114,9 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 	}
 
 	if !htmlcoinTx.IsPending() { // otherwise, the following values must be nulls
-		blockNumber, err := getBlockNumberByHash(p, htmlcoinTx.BlockHash)
+		blockNumber, err := getBlockNumberByHash(ctx, p, htmlcoinTx.BlockHash)
 		if err != nil {
+			p.GetDebugLogger().Log("msg", "Failed to get block number by hash", "hash", htmlcoinTx.BlockHash, "err", err)
 			return nil, eth.NewCallbackError("couldn't get block number by hash")
 		}
 		ethTx.BlockNumber = hexutil.EncodeUint64(blockNumber)
@@ -125,24 +133,35 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 		ethAmount, err := formatHtmlcoinAmount(htmlcoinDecodedRawTx.CalcAmount())
 		if err != nil {
 			// TODO: Correct error code?
+			p.GetDebugLogger().Log("msg", "Couldn't format htmlcoin amount", "htmlcoin", htmlcoinDecodedRawTx.CalcAmount().String(), "err", err)
 			return nil, eth.NewInvalidParamsError("couldn't format amount")
 		}
 		ethTx.Value = ethAmount
 	}
 
-	htmlcoinTxContractInfo, isContractTx, err := htmlcoinDecodedRawTx.ExtractContractInfo()
-	if err != nil {
-		return nil, eth.NewCallbackError(htmlcoinTx.Hex /*"couldn't extract contract info"*/)
-	}
+	htmlcoinTxContractInfo, isContractTx, _ := htmlcoinDecodedRawTx.ExtractContractInfo()
+	// parsing err is discarded because it's not an error if the transaction is not a valid contract call
+	// https://testnet.htmlcoin.info/tx/24ed3749022ed21e53d8924764bb0303a4b6fa469f26922bfa64ba44507c4c4a
+	// if err != nil {
+	// 	p.GetDebugLogger().Log("msg", "Couldn't extract contract info", "err", err)
+	// 	return nil, eth.NewCallbackError(htmlcoinTx.Hex /*"couldn't extract contract info"*/)
+	// }
 	if isContractTx {
 		// TODO: research is this allowed? ethTx.Input = utils.AddHexPrefix(htmlcoinTxContractInfo.UserInput)
 		if htmlcoinTxContractInfo.UserInput == "" {
-			ethTx.Input = "0x0"
+			ethTx.Input = "0x"
 		} else {
 			ethTx.Input = utils.AddHexPrefix(htmlcoinTxContractInfo.UserInput)
 		}
 		if htmlcoinTxContractInfo.From != "" {
 			ethTx.From = utils.AddHexPrefix(htmlcoinTxContractInfo.From)
+		} else {
+			// It seems that ExtractContractInfo only looks for OP_SENDER address when assigning From field, so if none is present we handle it like for a non-contract TX
+			ethTx.From, err = getNonContractTxSenderAddress(ctx, p, htmlcoinDecodedRawTx)
+			if err != nil {
+				p.GetDebugLogger().Log("msg", "Contract tx parsing found no sender address", "tx", htmlcoinDecodedRawTx, "err", err)
+				return nil, eth.NewCallbackError("Contract tx parsing found no sender address, and the fallback function also failed: " + err.Error())
+			}
 		}
 		//TODO: research if 'To' adress could be other than zero address when 'isContractTx == TRUE'
 		if len(htmlcoinTxContractInfo.To) == 0 {
@@ -150,8 +169,27 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 		} else {
 			ethTx.To = utils.AddHexPrefix(htmlcoinTxContractInfo.To)
 		}
-		ethTx.Gas = hexutil.Encode([]byte(htmlcoinTxContractInfo.GasLimit))
-		ethTx.GasPrice = hexutil.Encode([]byte(htmlcoinTxContractInfo.GasPrice))
+
+		// gasLimit
+		if len(htmlcoinTxContractInfo.GasLimit) == 0 {
+			htmlcoinTxContractInfo.GasLimit = "0"
+		}
+		ethTx.Gas = utils.AddHexPrefix(htmlcoinTxContractInfo.GasLimit)
+
+		// trim leading zeros from gasPrice
+		htmlcoinTxContractInfo.GasPrice = strings.TrimLeft(htmlcoinTxContractInfo.GasPrice, "0")
+		if len(htmlcoinTxContractInfo.GasPrice) == 0 {
+			htmlcoinTxContractInfo.GasPrice = "0"
+		}
+		// Gas price is in hex satoshis, convert to wei
+		gasPriceInSatoshis, err := utils.DecodeBig(htmlcoinTxContractInfo.GasPrice)
+		if err != nil {
+			p.GetErrorLogger().Log("msg", "Failed to parse gasPrice: "+htmlcoinTxContractInfo.GasPrice, "error", err.Error())
+			return ethTx, eth.NewCallbackError("Failed to parse gasPrice")
+		}
+
+		gasPriceInWei := convertFromSatoshiToWei(gasPriceInSatoshis)
+		ethTx.GasPrice = hexutil.EncodeBig(gasPriceInWei)
 
 		return ethTx, nil
 	}
@@ -159,15 +197,11 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 	if htmlcoinTx.Generated {
 		ethTx.From = utils.AddHexPrefix(htmlcoin.ZeroAddress)
 	} else {
-		// TODO: Figure out proper way to do this
-		// There is a problem with this function, sometimes it returns errors on regtest, empty block?
-		// commenting it out as its being overwritten below anyway
-		/*
-			ethTx.From, err = getNonContractTxSenderAddress(p, htmlcoinDecodedRawTx.Vins)
-			if err != nil {
-				return nil, eth.NewCallbackError("couldn't get non contract transaction sender address")
-			}
-		*/
+		// TODO: Figure out if following code still cause issues in some cases, see next comment
+
+		// causes issues on coinbase txs, coinbase will not have a sender and so this should be able to fail
+		ethTx.From, _ = getNonContractTxSenderAddress(ctx, p, htmlcoinDecodedRawTx)
+
 		// TODO: discuss
 		// ? Does func above return incorrect address for graph-node (len is < 40)
 		// ! Temporary solution
@@ -208,8 +242,8 @@ func getTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactio
 // TODO: Does this need to return eth.JSONRPCError
 // TODO: discuss
 // ? There are `witness` transactions, that is not acquireable nither via `gettransaction`, nor `getrawtransaction`
-func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactionByHashResponse, *htmlcoin.GetRawTransactionResponse, error) {
-	rawHtmlcoinTx, err := p.GetRawTransaction(hash, false)
+func getRewardTransactionByHash(ctx context.Context, p *htmlcoin.Htmlcoin, hash string) (*eth.GetTransactionByHashResponse, *htmlcoin.GetRawTransactionResponse, error) {
+	rawHtmlcoinTx, err := p.GetRawTransaction(ctx, hash, false)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "couldn't get raw reward transaction")
 	}
@@ -228,22 +262,22 @@ func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTran
 		Gas:      "0x0",
 		GasPrice: "0x0",
 
-		// TODO: researching
-		// ? Do we need those values
-		//! Added for go-ethereum client support
-		V: "0x0",
-		R: "0x0",
-		S: "0x0",
+		R: "0xf000000000000000000000000000000000000000000000000000000000000000",
+		S: "0xf000000000000000000000000000000000000000000000000000000000000000",
+		V: "0x25",
 	}
 
-	if !rawHtmlcoinTx.IsPending() {
-		blockIndex, err := getTransactionIndexInBlock(p, hash, rawHtmlcoinTx.BlockHash)
+	if rawHtmlcoinTx.IsPending() {
+		// geth returns null if the tx is pending
+		return nil, rawHtmlcoinTx, nil
+	} else {
+		blockIndex, err := getTransactionIndexInBlock(ctx, p, hash, rawHtmlcoinTx.BlockHash)
 		if err != nil {
 			return nil, nil, errors.WithMessage(err, "couldn't get transaction index in block")
 		}
 		ethTx.TransactionIndex = hexutil.EncodeUint64(uint64(blockIndex))
 
-		blockNumber, err := getBlockNumberByHash(p, rawHtmlcoinTx.BlockHash)
+		blockNumber, err := getBlockNumberByHash(ctx, p, rawHtmlcoinTx.BlockHash)
 		if err != nil {
 			return nil, nil, errors.WithMessage(err, "couldn't get block number by hash")
 		}
@@ -255,7 +289,7 @@ func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTran
 	for i := range rawHtmlcoinTx.Vouts {
 		// TODO: discuss
 		// ! The response may be null, even if txout is presented
-		_, err := p.GetTransactionOut(hash, i, rawHtmlcoinTx.IsPending())
+		_, err := p.GetTransactionOut(ctx, hash, i, rawHtmlcoinTx.IsPending())
 		if err != nil {
 			return nil, nil, errors.WithMessage(err, "couldn't get transaction out")
 		}
@@ -310,15 +344,16 @@ func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTran
 
 		for _, vout := range rawHtmlcoinTx.Vouts {
 			valueOut += vout.AmountSatoshi
-			addressesCount := len(vout.Details.Addresses)
-			if addressesCount > 0 && vout.Details.Addresses[0] == from {
+			addresses := vout.Details.GetAddresses()
+			addressesCount := len(addresses)
+			if addressesCount > 0 && addresses[0] == from {
 				refund += vout.AmountSatoshi
 			} else {
-				if addressesCount > 0 && vout.Details.Addresses[0] != "" {
+				if addressesCount > 0 && addresses[0] != "" {
 					if to == "" {
-						to = vout.Details.Addresses[0]
+						to = addresses[0]
 					}
-					if to == vout.Details.Addresses[0] {
+					if to == addresses[0] {
 						sentTo += vout.AmountSatoshi
 					}
 				}
@@ -327,7 +362,8 @@ func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTran
 		}
 		fee := valueIn - valueOut
 		if fee < 0 {
-			return nil, nil, errors.New("Detected negative fee - shouldn't happen")
+			// coinbase/coinstake txs have no fees since they are a part of making a block
+			fee = 0
 		}
 
 		if refund == 0 && sent == 0 {
@@ -345,12 +381,15 @@ func getRewardTransactionByHash(p *htmlcoin.Htmlcoin, hash string) (*eth.GetTran
 		sentToInWei := convertFromSatoshiToWei(big.NewInt(sentTo))
 		ethTx.Value = hexutil.EncodeUint64(sentToInWei.Uint64())
 
-		toAddress, err := p.Base58AddressToHex(to)
-		if err == nil {
-			ethTx.To = utils.AddHexPrefix(toAddress)
+		if to != "" {
+			toAddress, err := p.Base58AddressToHex(to)
+			if err == nil {
+				ethTx.To = utils.AddHexPrefix(toAddress)
+			}
 		}
 
 		// TODO: compute gasPrice based on fee, guess a gas amount based on vin/vout
+		// gas price is set in the OP_CALL/OP_CREATE script
 	}
 
 	return ethTx, rawHtmlcoinTx, nil

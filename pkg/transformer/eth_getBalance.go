@@ -30,7 +30,7 @@ func (p *ProxyETHGetBalance) Request(rawreq *eth.JSONRPCRequest, c echo.Context)
 	{
 		// is address a contract or an account?
 		htmlcoinreq := htmlcoin.GetAccountInfoRequest(addr)
-		htmlcoinresp, err := p.GetAccountInfo(&htmlcoinreq)
+		htmlcoinresp, err := p.GetAccountInfo(c.Request().Context(), &htmlcoinreq)
 
 		// the address is a contract
 		if err == nil {
@@ -49,7 +49,7 @@ func (p *ProxyETHGetBalance) Request(rawreq *eth.JSONRPCRequest, c echo.Context)
 		}
 
 		htmlcoinreq := htmlcoin.GetAddressBalanceRequest{Address: base58Addr}
-		htmlcoinresp, err := p.GetAddressBalance(&htmlcoinreq)
+		htmlcoinresp, err := p.GetAddressBalance(c.Request().Context(), &htmlcoinreq)
 		if err != nil {
 			if err == htmlcoin.ErrInvalidAddress {
 				// invalid address should return 0x0

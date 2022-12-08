@@ -17,6 +17,10 @@ repeat_until_success () {
     echo Command finished successfully
 }
 
+# Htmlcoin v22.1 no longer auto creates a default wallet, we need to create one to import keys and such
+RANDOM=$(date +%s)
+repeat_until_success htmlcoin-cli -rpcuser=htmlcoin -rpcpassword=testpasswd createwallet "createdWallet"$(( $RANDOM % 129 ))
+
 #import private keys and then prefund them
 repeat_until_success htmlcoin-cli -rpcuser=htmlcoin -rpcpassword=testpasswd importprivkey "cMbgxCJrTYUqgcmiC1berh5DFrtY1KeU4PXZ6NZxgenniF1mXCRk" address1 # addr=hUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW hdkeypath=m/88'/0'/1'
 repeat_until_success htmlcoin-cli -rpcuser=htmlcoin -rpcpassword=testpasswd importprivkey "cRcG1jizfBzHxfwu68aMjhy78CpnzD9gJYZ5ggDbzfYD3EQfGUDZ" address2 # addr=hLn9vqbr2Gx3TsVR9QyTVB5mrMoh4x43Uf hdkeypath=m/88'/0'/2'

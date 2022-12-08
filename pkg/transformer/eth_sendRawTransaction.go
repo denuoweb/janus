@@ -1,6 +1,8 @@
 package transformer
 
 import (
+	"context"
+
 	"github.com/labstack/echo"
 	"github.com/htmlcoin/janus/pkg/eth"
 	"github.com/htmlcoin/janus/pkg/htmlcoin"
@@ -29,21 +31,21 @@ func (p *ProxyETHSendRawTransaction) Request(req *eth.JSONRPCRequest, c echo.Con
 		return nil, eth.NewInvalidParamsError("invalid parameter: raw transaction hexed string is empty")
 	}
 
-	return p.request(params)
+	return p.request(c.Request().Context(), params)
 }
 
-func (p *ProxyETHSendRawTransaction) request(params eth.SendRawTransactionRequest) (eth.SendRawTransactionResponse, eth.JSONRPCError) {
+func (p *ProxyETHSendRawTransaction) request(ctx context.Context, params eth.SendRawTransactionRequest) (eth.SendRawTransactionResponse, eth.JSONRPCError) {
 	var (
 		htmlcoinHexedRawTx = utils.RemoveHexPrefix(params[0])
 		req            = htmlcoin.SendRawTransactionRequest([1]string{htmlcoinHexedRawTx})
 	)
 
-	htmlcoinresp, err := p.Htmlcoin.SendRawTransaction(&req)
+	htmlcoinresp, err := p.Htmlcoin.SendRawTransaction(ctx, &req)
 	if err != nil {
 		if err == htmlcoin.ErrVerifyAlreadyInChain {
 			// already committed
 			// we need to send back the tx hash
-			rawTx, err := p.Htmlcoin.DecodeRawTransaction(htmlcoinHexedRawTx)
+			rawTx, err := p.Htmlcoin.DecodeRawTransaction(ctx, htmlcoinHexedRawTx)
 			if err != nil {
 				p.GetErrorLogger().Log("msg", "Error decoding raw transaction for duplicate raw transaction", "err", err)
 				return eth.SendRawTransactionResponse(""), eth.NewCallbackError(err.Error())

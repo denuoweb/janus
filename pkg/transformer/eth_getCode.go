@@ -1,6 +1,8 @@
 package transformer
 
 import (
+	"context"
+
 	"github.com/labstack/echo"
 	"github.com/htmlcoin/janus/pkg/eth"
 	"github.com/htmlcoin/janus/pkg/htmlcoin"
@@ -23,13 +25,13 @@ func (p *ProxyETHGetCode) Request(rawreq *eth.JSONRPCRequest, c echo.Context) (i
 		return nil, eth.NewInvalidParamsError(err.Error())
 	}
 
-	return p.request(&req)
+	return p.request(c.Request().Context(), &req)
 }
 
-func (p *ProxyETHGetCode) request(ethreq *eth.GetCodeRequest) (eth.GetCodeResponse, eth.JSONRPCError) {
+func (p *ProxyETHGetCode) request(ctx context.Context, ethreq *eth.GetCodeRequest) (eth.GetCodeResponse, eth.JSONRPCError) {
 	htmlcoinreq := htmlcoin.GetAccountInfoRequest(utils.RemoveHexPrefix(ethreq.Address))
 
-	htmlcoinresp, err := p.GetAccountInfo(&htmlcoinreq)
+	htmlcoinresp, err := p.GetAccountInfo(ctx, &htmlcoinreq)
 	if err != nil {
 		if err == htmlcoin.ErrInvalidAddress {
 			/**
