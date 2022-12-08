@@ -17,15 +17,6 @@ import (
 	"github.com/dcb9/go-ethereum/common/hexutil"
 	kitLog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-<<<<<<< HEAD
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
-	"github.com/htmlcoin/janus/pkg/utils"
-	"github.com/shopspring/decimal"
-)
-
-//copy of htmlcoin.Doer interface
-=======
 	"github.com/labstack/echo"
 	"github.com/htmlcoin/janus/pkg/analytics"
 	"github.com/htmlcoin/janus/pkg/eth"
@@ -35,7 +26,7 @@ import (
 )
 
 // copy of htmlcoin.Doer interface
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc
+
 type Doer interface {
 	Do(*http.Request) (*http.Response, error)
 	AddRawResponse(requestType string, rawResponse []byte)
@@ -240,15 +231,11 @@ func parseRequestFromBody(request *http.Request) (*eth.JSONRPCRequest, error) {
 	return &requestJSON, err
 }
 
-<<<<<<< HEAD
-func CreateMockedClient(doerInstance Doer) (htmlcoinClient *htmlcoin.Htmlcoin, err error) {
-=======
 func CreateMockedClient(doerInstance Doer) (htmlcoinClient *htmlcoin.Htmlcoin, err error) {
 	return CreateMockedClientForNetwork(doerInstance, "test")
 }
 
 func CreateMockedClientForNetwork(doerInstance Doer, network string) (htmlcoinClient *htmlcoin.Htmlcoin, err error) {
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc
 	logger := kitLog.NewLogfmtLogger(os.Stdout)
 	if !isDebugEnvironmentVariableSet() {
 		logger = level.NewFilter(logger, level.AllowWarn())
@@ -256,26 +243,16 @@ func CreateMockedClientForNetwork(doerInstance Doer, network string) (htmlcoinCl
 	htmlcoinJSONRPC, err := htmlcoin.NewClient(
 		true,
 		"http://user:pass@mocked",
-<<<<<<< HEAD
-		htmlcoin.SetDoer(doerInstance),
-		htmlcoin.SetDebug(isDebugEnvironmentVariableSet()),
-		htmlcoin.SetLogger(logger),
-=======
 		htmlcoin.SetDoer(doerInstance),
 		htmlcoin.SetDebug(isDebugEnvironmentVariableSet()),
 		htmlcoin.SetLogger(logger),
 		htmlcoin.SetAnalytics(analytics.NewAnalytics(10)),
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc
 	)
 	if err != nil {
 		return
 	}
 
-<<<<<<< HEAD
-	htmlcoinClient, err = htmlcoin.New(htmlcoinJSONRPC, "test")
-=======
 	htmlcoinClient, err = htmlcoin.New(htmlcoinJSONRPC, network)
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc
 	return
 }
 
@@ -568,10 +545,6 @@ func SetupGetBlockByHashResponsesWithVouts(t *testing.T, vouts []*htmlcoin.Decod
 	}
 
 	// TODO: Get an actual response for this (only addresses are used in this test though)
-<<<<<<< HEAD
-	getRawTransactionResponse := htmlcoin.GetRawTransactionResponse{
-		Vouts: []htmlcoin.RawTransactionVout{
-=======
 	getRawTransactionResponse := htmlcoin.GetRawTransactionResponse{
 		Vins: []htmlcoin.RawTransactionVin{
 			{
@@ -579,7 +552,6 @@ func SetupGetBlockByHashResponsesWithVouts(t *testing.T, vouts []*htmlcoin.Decod
 			},
 		},
 		Vouts: []htmlcoin.RawTransactionVout{
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc
 			{
 				Details: htmlcoin.RawTransactionVoutDetails{
 					Addresses: []string{

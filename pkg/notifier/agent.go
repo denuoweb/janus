@@ -346,11 +346,7 @@ func (a *Agent) run() {
 		if transformer == nil {
 			a.htmlcoin.GetErrorLogger().Log("msg", "Agent does not have access to eth transformer, cannot process 'newHeads' subscriptions")
 		} else {
-<<<<<<< HEAD
-			blockchainInfo, err := a.htmlcoin.GetBlockChainInfo()
-=======
 			blockchainInfo, err := a.htmlcoin.GetBlockChainInfo(a.ctx)
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc
 			if err != nil {
 				a.htmlcoin.GetErrorLogger().Log("msg", "Failure getting blockchaininfo", "err", err)
 			} else {
