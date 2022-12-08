@@ -47,7 +47,7 @@ const buidlerConfig: HardhatUserConfig = {
   defaultNetwork: "development",
   networks: {
     development: {
-      url: "http://127.0.0.1:23889",
+      url: "http://127.0.0.1:24889",
       gas: "auto",
       gasPrice: "auto",
       timeout: 600000
@@ -57,7 +57,7 @@ const buidlerConfig: HardhatUserConfig = {
       gas: "auto",
     },
     testnet: {
-      url: "http://hk1.s.htmlcoin.org:23889",
+      url: "http://hk1.s.htmlcoin.org:24889",
       from: "0x7926223070547d2d15b2ef5e7383e541c338ffe9",
       gas: "auto",
       gasPrice: "auto"

@@ -9,9 +9,9 @@ services:
         - golang:3.16-alpine
         - htmlcoin/janus:dev
     ports:
-      - "23889:23889"
+      - "24889:24889"
     environment:
-      - HTMLCOIN_RPC=http://htmlcoin:testpasswd@htmlcoin:3889
+      - HTMLCOIN_RPC=http://htmlcoin:testpasswd@htmlcoin:4889
     volumes:
       - ../../:/src:ro
     depends_on:
@@ -19,7 +19,7 @@ services:
     command: --bind 0.0.0.0 --accounts /src/myaccounts.txt --dev
   htmlcoin:
     ports:
-      - "3889:3889"
+      - "4889:4889"
     image: htmlcoin/htmlcoin-seeded
     build:
       context: ../../docker
@@ -27,7 +27,7 @@ services:
       cache_from:
         - htmlcoin/htmlcoin-seeded
     container_name: htmlcoin_seeded_testchain
-    command: htmlcoind -regtest -addrindex -txindex -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole
+    command: htmlcoind -regtest -addrindex -txindex -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole
   openzeppelin:
     image: htmlcoin/janus-openzeppelin
     build:

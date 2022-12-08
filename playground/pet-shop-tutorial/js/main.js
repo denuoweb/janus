@@ -26,7 +26,7 @@ let HTMLCOINTestNet = {
   chainId: '0x115D', // 4445
   chainName: 'Htmlcoin Testnet',
   rpcUrls: ['https://testnet.htmlcoin.com/janus/'],
-  // rpcUrls: ['https://localhost:23889'],
+  // rpcUrls: ['https://localhost:24889'],
   blockExplorerUrls: ['https://testnet.htmlcoin.com/'],
   iconUrls: [
     'https://htmlcoin.com/wp-content/uploads/2021/05/htmlcoinlogo.png',

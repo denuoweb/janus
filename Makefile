@@ -5,7 +5,7 @@ endif
 ifdef JANUS_PORT
 JANUS_PORT := $(JANUS_PORT)
 else
-JANUS_PORT := 23889
+JANUS_PORT := 24889
 endif
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -98,27 +98,27 @@ docker-dev:
 
 .PHONY: local-dev
 local-dev: check-env install
-	docker run --rm --name htmlcoin_testchain -d -p 3889:3889 htmlcoin/htmlcoin htmlcoind -regtest -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
+	docker run --rm --name htmlcoin_testchain -d -p 4889:4889 htmlcoin/htmlcoin htmlcoind -regtest -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
 	sleep 3
 	docker cp ${GOPATH}/src/github.com/htmlcoin/janus/docker/fill_user_account.sh htmlcoin_testchain:.
 	docker exec htmlcoin_testchain /bin/sh -c ./fill_user_account.sh
-	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:3889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev
+	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:4889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev
 
 .PHONY: local-dev-https
 local-dev-https: check-env install
-	docker run --rm --name htmlcoin_testchain -d -p 3889:3889 htmlcoin/htmlcoin htmlcoind -regtest -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
+	docker run --rm --name htmlcoin_testchain -d -p 4889:4889 htmlcoin/htmlcoin htmlcoind -regtest -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
 	sleep 3
 	docker cp ${GOPATH}/src/github.com/htmlcoin/janus/docker/fill_user_account.sh htmlcoin_testchain:.
 	docker exec htmlcoin_testchain /bin/sh -c ./fill_user_account.sh > /dev/null&
-	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:3889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev --https-key https/key.pem --https-cert https/cert.pem
+	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:4889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev --https-key https/key.pem --https-cert https/cert.pem
 
 .PHONY: local-dev-logs
 local-dev-logs: check-env install
-	docker run --rm --name htmlcoin_testchain -d -p 3889:3889 htmlcoin/htmlcoin:dev htmlcoind -regtest -rpcbind=0.0.0.0:3889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
+	docker run --rm --name htmlcoin_testchain -d -p 4889:4889 htmlcoin/htmlcoin:dev htmlcoind -regtest -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
 	sleep 3
 	docker cp ${GOPATH}/src/github.com/htmlcoin/janus/docker/fill_user_account.sh htmlcoin_testchain:.
 	docker exec htmlcoin_testchain /bin/sh -c ./fill_user_account.sh
-	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:3889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev > janus_dev_logs.txt
+	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:4889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev > janus_dev_logs.txt
 
 .PHONY: unit-tests
 unit-tests: check-env
@@ -154,10 +154,10 @@ run-janus:
 	@ printf "\nRunning Janus...\n\n"
 
 	go run `pwd`/main.go \
-		--htmlcoin-rpc=http://${test_user}:${test_user_passwd}@0.0.0.0:3889 \
+		--htmlcoin-rpc=http://${test_user}:${test_user_passwd}@0.0.0.0:4889 \
 		--htmlcoin-network=auto \
 		--bind=0.0.0.0 \
-		--port=23889 \
+		--port=24889 \
 		--accounts=`pwd`/docker/standalone/myaccounts.txt \
 		--log-file=janusLogs.txt \
 		--dev
@@ -166,10 +166,10 @@ run-janus-https:
 	@ printf "\nRunning Janus...\n\n"
 
 	go run `pwd`/main.go \
-		--htmlcoin-rpc=http://${test_user}:${test_user_passwd}@0.0.0.0:3889 \
+		--htmlcoin-rpc=http://${test_user}:${test_user_passwd}@0.0.0.0:4889 \
 		--htmlcoin-network=auto \
 		--bind=0.0.0.0 \
-		--port=23889 \
+		--port=24889 \
 		--accounts=`pwd`/docker/standalone/myaccounts.txt \
 		--log-file=janusLogs.txt \
 		--dev \
@@ -208,12 +208,12 @@ htmlcoin_container_flags = \
 	--rm -d \
 	--name ${htmlcoin_container_name} \
 	-v ${shell pwd}/dapp \
-	-p 3889:3889
+	-p 4889:4889
 
 # TODO: research flags
 htmlcoind_flags = \
 	-regtest \
-	-rpcbind=0.0.0.0:3889 \
+	-rpcbind=0.0.0.0:4889 \
 	-rpcallowip=0.0.0.0/0 \
 	-logevents \
 	-addrindex \

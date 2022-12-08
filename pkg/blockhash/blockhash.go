@@ -150,7 +150,7 @@ func (bh *BlockHash) Start(databaseConfig *DatabaseConfig, chainIdChan <-chan in
 		// ctx, cancelFunc := context.WithCancel(context.Background())
 
 		// janus, err := url.Parse("https://janus.htmlcoin.com")
-		janus, _ := url.Parse("http://localhost:23889")
+		janus, _ := url.Parse("http://localhost:24889")
 		providers := []*url.URL{janus}
 
 		dispatchLogger, _ := blockHashLog.GetLogger()
