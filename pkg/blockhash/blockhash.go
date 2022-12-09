@@ -25,7 +25,7 @@ type BlockHash struct {
 	ctx   context.Context
 	mutex sync.RWMutex
 
-	htmlcoinDB    *db.HtmlcoinDB
+	qtumDB    *db.HtmlcoinDB
 	getLogger func() log.Logger
 
 	chainId      int
@@ -68,9 +68,9 @@ func (bh *BlockHash) GetHtmlcoinBlockHash(ethereumBlockHash string) (*string, er
 func (bh *BlockHash) GetHtmlcoinBlockHashContext(ctx context.Context, ethereumBlockHash string) (*string, error) {
 	var htmlcoinBlockHash string
 	bh.mutex.RLock()
-	htmlcoinDB := bh.htmlcoinDB
+	qtumDB := bh.qtumDB
 	bh.mutex.RUnlock()
-	if htmlcoinDB == nil {
+	if qtumDB == nil {
 		return &htmlcoinBlockHash, ErrDatabaseNotConfigured
 	}
 
@@ -87,9 +87,9 @@ func (bh *BlockHash) GetHtmlcoinBlockHashContext(ctx context.Context, ethereumBl
 	}
 
 	if ctx == nil {
-		return htmlcoinDB.GetHtmlcoinHash(chainId, ethereumBlockHash)
+		return qtumDB.GetQtumHash(chainId, ethereumBlockHash)
 	} else {
-		return htmlcoinDB.GetHtmlcoinHashContext(ctx, chainId, ethereumBlockHash)
+		return qtumDB.GetQtumHashContext(ctx, chainId, ethereumBlockHash)
 	}
 }
 
@@ -108,7 +108,7 @@ func (bh *BlockHash) Start(databaseConfig *DatabaseConfig, chainIdChan <-chan in
 
 	connectionString := databaseConfig.String()
 
-	qdb, err := db.NewHtmlcoinDB(bh.ctx, connectionString, resultChan, errChan)
+	qdb, err := db.NewQtumDB(bh.ctx, connectionString, resultChan, errChan)
 	if err != nil {
 		bh.chainIdMutex.Unlock()
 		// Quick fail if database connection fails
@@ -116,7 +116,7 @@ func (bh *BlockHash) Start(databaseConfig *DatabaseConfig, chainIdChan <-chan in
 	}
 
 	bh.mutex.Lock()
-	bh.htmlcoinDB = qdb
+	bh.qtumDB = qdb
 	bh.mutex.Unlock()
 
 	go func() {
@@ -194,7 +194,7 @@ func (bh *BlockHash) Start(databaseConfig *DatabaseConfig, chainIdChan <-chan in
 			case <-done:
 				qdb.Shutdown()
 				bh.mutex.Lock()
-				bh.htmlcoinDB = nil
+				bh.qtumDB = nil
 				bh.mutex.Unlock()
 				status = 0
 			// case <-sigs:

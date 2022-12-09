@@ -209,7 +209,6 @@ func (c *Client) RequestWithContext(ctx context.Context, method string, params i
 					return errors.WithMessage(ctx.Err(), "context cancelled")
 				}
 				c.GetLogger().Log("msg", "Retrying HTMLCOIN command")
->>>>>>> 34b4884e8d200ceebe2055f84e0e774464178ccc:pkg/htmlcoin/client.go
 			} else {
 				if i != 0 {
 					c.GetLogger().Log("msg", fmt.Sprintf("Giving up on HTMLCOIN RPC call after %d tries since its busy", i+1))
