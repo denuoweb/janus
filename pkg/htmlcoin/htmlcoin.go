@@ -49,7 +49,7 @@ func New(c *Client, chain string) (*Htmlcoin, error) {
 
 	c.SetErrorHandler(func(ctx context.Context, err error) error {
 		if errorHandler, ok := errorHandlers[err]; ok {
-			return errorHandler(ctx, htmlcoin.errorState, htmlcoin.Method)
+			return errorHandler(ctx, htmlcoin, htmlcoin.errorState, htmlcoin.Method)
 		}
 		return nil
 	})

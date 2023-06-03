@@ -38,6 +38,7 @@ type Server struct {
 	echo          *echo.Echo
 	blockHash     *blockhash.BlockHash
 
+	healthCheckPercent   *int
 	htmlcoinRequestAnalytics *analytics.Analytics
 	ethRequestAnalytics  *analytics.Analytics
 
@@ -253,6 +254,13 @@ func SetHttps(key string, cert string) Option {
 func SetHtmlcoinAnalytics(analytics *analytics.Analytics) Option {
 	return func(p *Server) error {
 		p.htmlcoinRequestAnalytics = analytics
+		return nil
+	}
+}
+
+func SetHealthCheckPercent(percent *int) Option {
+	return func(p *Server) error {
+		p.healthCheckPercent = percent
 		return nil
 	}
 }

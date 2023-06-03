@@ -33,12 +33,16 @@ func (s *Server) testConnectionToHtmlcoind() error {
 				return nil
 			}
 			if networkInfo.Connections == 0 {
+				s.logger.Log("liveness", "Htmlcoind has no network connections")
 				return ErrNoHtmlcoinConnections
 			}
 			break
 		case <-getChainTimeout.C:
+			s.logger.Log("liveness", "Htmlcoind getnetworkinfo request timed out")
 			return ErrCannotGetConnectedChain
 		}
+	} else {
+		s.logger.Log("liveness", "Htmlcoind getnetworkinfo errored", "err", err)
 	}
 	return err
 }
@@ -46,6 +50,7 @@ func (s *Server) testConnectionToHtmlcoind() error {
 func (s *Server) testLogEvents() error {
 	_, err := s.htmlcoinRPCClient.GetTransactionReceipt(s.htmlcoinRPCClient.GetContext(), "0000000000000000000000000000000000000000000000000000000000000000")
 	if err == htmlcoin.ErrInternalError {
+		s.logger.Log("liveness", "-logevents might not be enabled")
 		return errors.Wrap(err, "-logevents might not be enabled")
 	}
 	return nil
@@ -62,6 +67,9 @@ func (s *Server) testBlocksSyncing() error {
 		nextBlockCheck = &nextBlockCheckTime
 	}
 	if nextBlockCheck.After(now) {
+		if lastBlockStatus != nil {
+			s.logger.Log("liveness", "blocks syncing", "err", lastBlockStatus)
+		}
 		return lastBlockStatus
 	}
 	s.blocksMutex.Lock()
@@ -74,6 +82,7 @@ func (s *Server) testBlocksSyncing() error {
 
 	blockChainInfo, err := s.htmlcoinRPCClient.GetBlockChainInfo(s.htmlcoinRPCClient.GetContext())
 	if err != nil {
+		s.logger.Log("liveness", "getblockchainfo request failed", "err", err)
 		return err
 	}
 
@@ -93,12 +102,14 @@ func (s *Server) testBlocksSyncing() error {
 			s.lastBlock = 0
 			nextBlockCheckTime = time.Now().Add(60 * time.Second)
 			s.nextBlockCheck = &nextBlockCheckTime
+			s.logger.Log("liveness", "Lost lots of blocks")
 			s.lastBlockStatus = ErrLostLotsOfBlocks
 		} else {
 			// lost a few blocks
 			// could be htmlcoind nodes out of sync behind a load balancer
 			nextBlockCheckTime = time.Now().Add(10 * time.Second)
 			s.nextBlockCheck = &nextBlockCheckTime
+			s.logger.Log("liveness", "Lost a few blocks")
 			s.lastBlockStatus = ErrLostFewBlocks
 		}
 	} else {
@@ -113,10 +124,11 @@ func (s *Server) testBlocksSyncing() error {
 }
 
 func (s *Server) testHtmlcoindErrorRate() error {
-	minimumSuccessRate := float32(0.8)
+	minimumSuccessRate := float32(*s.healthCheckPercent / 100)
 	htmlcoinSuccessRate := s.htmlcoinRequestAnalytics.GetSuccessRate()
 
 	if htmlcoinSuccessRate < minimumSuccessRate {
+		s.logger.Log("liveness", "htmlcoind request success rate is low", "rate", htmlcoinSuccessRate)
 		return errors.New(fmt.Sprintf("htmlcoind request success rate is %f<%f", htmlcoinSuccessRate, minimumSuccessRate))
 	} else {
 		return nil
@@ -124,10 +136,11 @@ func (s *Server) testHtmlcoindErrorRate() error {
 }
 
 func (s *Server) testJanusErrorRate() error {
-	minimumSuccessRate := float32(0.8)
+	minimumSuccessRate := float32(*s.healthCheckPercent / 100)
 	ethSuccessRate := s.ethRequestAnalytics.GetSuccessRate()
 
-	if ethSuccessRate < 0.8 {
+	if ethSuccessRate < minimumSuccessRate {
+		s.logger.Log("liveness", "client eth success rate is low", "rate", ethSuccessRate)
 		return errors.New(fmt.Sprintf("client eth request success rate is %f<%f", ethSuccessRate, minimumSuccessRate))
 	} else {
 		return nil
