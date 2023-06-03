@@ -1,6 +1,3 @@
-[![Github Build Status](https://github.com/htmlcoin/janus/workflows/Openzeppelin/badge.svg)](https://github.com/htmlcoin/janus/actions)
-[![Github Build Status](https://github.com/htmlcoin/janus/workflows/Unit%20tests/badge.svg)](https://github.com/htmlcoin/janus/actions)
-
 # Htmlcoin adapter to Ethereum JSON RPC
 Janus is a web3 proxy adapter that can be used as a web3 provider to interact with Htmlcoin. It supports HTTP(s) and websockets and the current version enables self hosting of keys.
 
