@@ -14,7 +14,7 @@ require (
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/denuoweb/btcd v0.0.3-beta.htmlcoin
+	github.com/denuoweb/btcd v0.0.4-beta.htmlcoin
 	github.com/denuoweb/ethereum-block-processor v0.0.1
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.7.0
