@@ -48,7 +48,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/denuoweb/btcd/btcec/v2 v2.0.1-beta.htmlcoin // indirect
 	github.com/denuoweb/btcd/btcutil v1.0.1-beta.htmlcoin // indirect
-	github.com/denuoweb/btcd/chaincfg/chainhash v1.0.1-beta.qtum // indirect
+	github.com/denuoweb/btcd/chaincfg/chainhash v1.0.1-beta.htmlcoin // indirect
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/schollz/progressbar/v3 v3.8.7 // indirect
