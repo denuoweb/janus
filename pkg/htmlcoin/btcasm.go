@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/qtumproject/btcd/txscript"
+	"github.com/denuoweb/btcd/txscript"
 )
 
 type (
