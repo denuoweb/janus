@@ -1,4 +1,4 @@
-module github.com/htmlcoin/janus
+module github.com/denuoweb/janus
 
 go 1.18
 
