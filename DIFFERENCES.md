@@ -2,7 +2,7 @@
 - Transaction signing is incompatible
   - HTMLCOIN is based on Bitcoin and therefore requires Bitcoin transaction signing
     - EVM transactions are done with special opcodes in Bitcoin output scripts (OP_CALL/OP_CREATE)
-  - Use [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) to sign transactions for use in eth_sendRawTransaction
+  - Use [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) to sign transactions for use in eth_sendRawTransaction
     - Currently, the library only supports sending 1 tx per block due to Bitcoin inputs being re-used so test your code to redo transactions if they are rejected with eth_sendRawTransaction
       - This will be fixed in a future version
 - Solidity
@@ -11,31 +11,31 @@
     - uses a different message prefix than Ethereum: "\u0015Htmlcoin Signed Message:\n" (equal to "\x15Htmlcoin Signed Message:\n")
       - you will need to update your contracts to use this prefix
     - ecrecover won't recover a HTMLCOIN address from eth_sign, you will need to implement [QIP6 - btc_ecrecover](https://blog.htmlcoin.org/qip-6-87e7a9743e14) in your contracts
-      - [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) properly signs messages
+      - [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) properly signs messages
 - Sending coins with the creation of a contract will cause a loss of coins
   - This is a Htmlcoin intentional deisgn decision and will not change
   - Janus will prevent this with eth_sendTransaction but will permit it with eth_sendRawTransaction
-  - [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) will reject creating such a transaction
+  - [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) will reject creating such a transaction
 - Contract address generation differs from EVM chains
   - on EVM chains, the contract address is generated via a hash of the deployer address + the nonce
   - HTMLCOIN has no concept of a nonce because it is built on Bitcoin
     - instead the contract address is generated via a hash of the transaction which will always be different because the Bitcoin inputs will be different
     - so, if your app depends on a consistent contract address between deployments on different chains you need to pay special attention to this
-    - For contract address generation code, see [generateContractAddress](https://github.com/htmlcoin/htmlcoin-ethers/blob/main/src/lib/helpers/utils.ts)
+    - For contract address generation code, see [generateContractAddress](https://github.com/denuoweb/htmlcoin-ethers/blob/main/src/lib/helpers/utils.ts)
 - Account address generation differs from EVM chains
   - You really only need to worry about this if you need to use the same account address on different chains
-  - [eth_accounts](pkg/transformer/eth_accounts.go) and [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) will abstract this away from you
-  - For account address generation code, see [computeAddress](https://github.com/htmlcoin/htmlcoin-ethers/blob/main/src/lib/helpers/utils.ts)
+  - [eth_accounts](pkg/transformer/eth_accounts.go) and [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) will abstract this away from you
+  - For account address generation code, see [computeAddress](https://github.com/denuoweb/htmlcoin-ethers/blob/main/src/lib/helpers/utils.ts)
 - Block hash is computed differently from EVM chains
   - If you are generating the blockhash from the block header, it will be wrong
     - we plan to add a compatiblity layer in Janus to transparently serve the correct block when requesting an Ethereum block hash
       - this will eventually require hooking up Janus to a database to keep a map of hash(block header) => HTMLCOIN block hash
 - Remix
   - Debug calls are not supported so you will not be able to do any debugging in Remix
-  - You can use Remix with Janus or [(Alpha) HTMLCOIN Metamask fork](https://github.com/htmlcoin/metamask-extension/releases)
+  - You can use Remix with Janus or [(Alpha) HTMLCOIN Metamask fork](https://github.com/denuoweb/metamask-extension/releases)
 - It is possible for a HTMLCOIN transaction to have more than one EVM transaction in it
   - this is because HTMLCOIN does EVM transactions inside Bitcoin outputs which there can be multiple of
-  - Janus and [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) will not generate such a transaction
+  - Janus and [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) will not generate such a transaction
   - Janus will try and work around such a transaction when requesting information about the transaction
     - but it is not possible to map to the EVM model perfectly so there will always be some data missing for these transactions
 - HTMLCOIN is proof of stake and requires coins to be mature (older than 2000 blocks) to be used in a transaction
@@ -43,13 +43,13 @@
     - a gas refund is an output generated by the miner for every EVM transaction in the same block as the EVM transaction takes place in for unused gas
   - Janus will try to use mature coins first and will fall back to immature coins if there are no mature coins left
     - this can result in transactions being rejected
-  - [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) will not use immature coins for transactions, but if you end up using high gas limits for your transactions you could quickly run out of usable coins
+  - [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) will not use immature coins for transactions, but if you end up using high gas limits for your transactions you could quickly run out of usable coins
     - if there are no mature coins, the transaction will fail locally
 - Bitcoin input scripts
   - Bitcoin has many different types of scripts
     - For a detailed primer on this topic see [A breakdown of Bitcoin "standard" script types (crazy long)](https://www.reddit.com/r/Bitcoin/comments/jmiko9/a_breakdown_of_bitcoin_standard_script_types/)
   - [eth_sendTransaction](/pkg/transformer/eth_sendTransaction.go) delegates transaction signing to HTMLCOIN so most input scripts should be supported
-  - [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) deals with signing transactions locally and only supports Pay to public key hash (P2PKH) scripts, other script types will be ignored and not selected.
+  - [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) deals with signing transactions locally and only supports Pay to public key hash (P2PKH) scripts, other script types will be ignored and not selected.
     - This can result in your spendable balance being lower than your actual balance.
     - Support for Pay to public key (P2PK) input scripts is on the roadmap
 - [eth_estimateGas](/pkg/transformer/eth_estimateGas.go)
@@ -61,11 +61,11 @@
   - Since HTMLCOIN uses Bitcoin transactions, the cost of a transaction differs based on how many bytes are in the transaction
     - This means if you have many inputs in a transaction, it will cost more to send
   - There is no easy way to send your entire HTMLCOIN balance in a single transaction with Janus
-    - However, [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) supports this via value = total - (gas limit * gas price)
+    - However, [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) supports this via value = total - (gas limit * gas price)
     - Adding this to Janus is on the roadmap
 - Since HTMLCOIN runs on Bitcoin, HTMLCOIN has the concept of [dust](https://en.bitcoinwiki.org/wiki/Cryptocurrency_dust)
   - Janus delegates transaction signing to HTMLCOIN so HTMLCOIN will handle dealing with dust
-  - [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) currently uses dust, but at some point will prevent spending dust by default with a semver change
+  - [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) currently uses dust, but at some point will prevent spending dust by default with a semver change
 - On a transfer of Htmlcoin to a Htmlcoin address, there is no receipt generated for such a transfer
 - When converting from WEI -> HTMLCOIN, precision is lost due to HTMLCOIN's smallest demonination being 1 satoshi.
   - 1 satoshi = 0.00000001 HTMLCOIN = 10000000000 wei

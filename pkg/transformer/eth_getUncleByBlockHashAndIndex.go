@@ -2,7 +2,7 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/eth"
 )
 
 type ETHGetUncleByBlockHashAndIndex struct {

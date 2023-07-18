@@ -6,9 +6,9 @@ import (
 	"math/big"
 
 	"github.com/labstack/echo"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
-	"github.com/htmlcoin/janus/pkg/utils"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/utils"
 	"github.com/shopspring/decimal"
 )
 

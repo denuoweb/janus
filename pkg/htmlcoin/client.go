@@ -20,8 +20,8 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/analytics"
-	"github.com/htmlcoin/janus/pkg/blockhash"
+	"github.com/denuoweb/janus/pkg/analytics"
+	"github.com/denuoweb/janus/pkg/blockhash"
 )
 
 var FLAG_GENERATE_ADDRESS_TO = "REGTEST_GENERATE_ADDRESS_TO"

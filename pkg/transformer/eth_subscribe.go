@@ -2,9 +2,9 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/notifier"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/notifier"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 )
 
 // ETHSubscribe implements ETHProxy

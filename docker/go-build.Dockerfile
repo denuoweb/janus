@@ -4,8 +4,8 @@ ARG ALPINE_VERSION=3.16
 FROM golang:${GO_VERSION}-alpine as builder
 RUN apk add --no-cache make gcc musl-dev git
 
-WORKDIR $GOPATH/src/github.com/htmlcoin/janus
-COPY go.mod go.sum $GOPATH/src/github.com/htmlcoin/janus/
+WORKDIR $GOPATH/src/github.com/denuoweb/janus
+COPY go.mod go.sum $GOPATH/src/github.com/denuoweb/janus/
 
 # Cache go modules
 RUN go mod download -x

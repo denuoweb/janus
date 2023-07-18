@@ -10,9 +10,9 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/notifier"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/notifier"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 
 	"github.com/gorilla/websocket"
 )

@@ -11,12 +11,12 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcutil/base58"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/utils"
+	"github.com/denuoweb/janus/pkg/utils"
 	"github.com/shopspring/decimal"
 )
 

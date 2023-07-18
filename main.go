@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/htmlcoin/janus/cli"
+	"github.com/denuoweb/janus/cli"
 )
 
 func main() {

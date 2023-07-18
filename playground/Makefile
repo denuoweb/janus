@@ -3,7 +3,7 @@ container_name = "htmlcoinportal-testjanus"
 
 .PHONY: image
 image:
-	GOOS=linux GOARCH=amd64 go build -o ./docker/janus-linux-amd64 github.com/htmlcoin/janus/cli/janus
+	GOOS=linux GOARCH=amd64 go build -o ./docker/janus-linux-amd64 github.com/denuoweb/janus/cli/janus
 	docker build ./docker -t $(img_tag)
 
 .PHONY: run

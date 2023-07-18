@@ -18,11 +18,11 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/analytics"
-	"github.com/htmlcoin/janus/pkg/blockhash"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
-	"github.com/htmlcoin/janus/pkg/transformer"
+	"github.com/denuoweb/janus/pkg/analytics"
+	"github.com/denuoweb/janus/pkg/blockhash"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/transformer"
 )
 
 type Server struct {

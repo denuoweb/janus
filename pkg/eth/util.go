@@ -2,7 +2,7 @@ package eth
 
 import (
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/utils"
+	"github.com/denuoweb/janus/pkg/utils"
 )
 
 var ErrInvalidTopics = errors.New("Invalid topics")

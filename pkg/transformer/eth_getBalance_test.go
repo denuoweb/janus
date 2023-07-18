@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/htmlcoin/janus/pkg/internal"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/internal"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 )
 
 func TestGetBalanceRequestAccount(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/utils"
+	"github.com/denuoweb/janus/pkg/utils"
 )
 
 type Htmlcoin struct {

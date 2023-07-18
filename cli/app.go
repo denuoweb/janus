@@ -11,12 +11,12 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/analytics"
-	"github.com/htmlcoin/janus/pkg/notifier"
-	"github.com/htmlcoin/janus/pkg/params"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
-	"github.com/htmlcoin/janus/pkg/server"
-	"github.com/htmlcoin/janus/pkg/transformer"
+	"github.com/denuoweb/janus/pkg/analytics"
+	"github.com/denuoweb/janus/pkg/notifier"
+	"github.com/denuoweb/janus/pkg/params"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/server"
+	"github.com/denuoweb/janus/pkg/transformer"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

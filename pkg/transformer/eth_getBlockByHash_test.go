@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/htmlcoin/janus/pkg/internal"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
-	"github.com/htmlcoin/janus/pkg/utils"
+	"github.com/denuoweb/janus/pkg/internal"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/utils"
 )
 
 func initializeProxyETHGetBlockByHash(htmlcoinClient *htmlcoin.Htmlcoin) ETHProxy {

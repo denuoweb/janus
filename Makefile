@@ -9,7 +9,7 @@ JANUS_PORT := 24889
 endif
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-JANUS_DIR := "/go/src/github.com/htmlcoin/janus"
+JANUS_DIR := "/go/src/github.com/denuoweb/janus"
 GO_VERSION := "1.18"
 ALPINE_VERSION := "3.16"
 DOCKER_ACCOUNT := ripply
@@ -37,8 +37,8 @@ endif
 .PHONY: install
 install:
 	go install \
-		-ldflags "-X 'github.com/htmlcoin/janus/pkg/params.GitSha=`./sha.sh``git diff -s --exit-code || echo \"-local\"`'" \
-		github.com/htmlcoin/janus
+		-ldflags "-X 'github.com/denuoweb/janus/pkg/params.GitSha=`./sha.sh``git diff -s --exit-code || echo \"-local\"`'" \
+		github.com/denuoweb/janus
 
 .PHONY: release
 release: darwin linux windows
@@ -52,7 +52,7 @@ linux: build-linux-386 tar-gz-linux-386 build-linux-amd64 tar-gz-linux-amd64 bui
 .PHONY: windows
 windows: build-windows-386 tar-gz-windows-386 build-windows-amd64 tar-gz-windows-amd64 build-windows-arm64 tar-gz-windows-arm64
 	echo hey
-#	GOOS=linux GOARCH=arm64 go build -o ./build/janus-linux-arm64 github.com/htmlcoin/janus/cli/janus
+#	GOOS=linux GOARCH=arm64 go build -o ./build/janus-linux-arm64 github.com/denuoweb/janus/cli/janus
 
 docker-build-go-build:
 	docker build -t htmlcoin/go-build.janus -f ./docker/go-build.Dockerfile --build-arg GO_VERSION=$(GO_VERSION) .
@@ -76,7 +76,7 @@ build-%: docker-build-go-build
 			build \
 			-buildvcs=false \
 			-ldflags \
-				"-X 'github.com/htmlcoin/janus/pkg/params.GitSha=`./sha.sh`'" \
+				"-X 'github.com/denuoweb/janus/pkg/params.GitSha=`./sha.sh`'" \
 			-o /build/bin/janus-$(shell echo $@ | sed s/build-// | sed 's/-/\n/' | awk 'NR==1')-$(shell echo $@ | sed s/build-// | sed 's/-/\n/' | awk 'NR==2') $(JANUS_DIR)
 
 .PHONY: quick-start
@@ -100,7 +100,7 @@ docker-dev:
 local-dev: check-env install
 	docker run --rm --name htmlcoin_testchain -d -p 4889:4889 htmlcoin/htmlcoin htmlcoind -regtest -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
 	sleep 3
-	docker cp ${GOPATH}/src/github.com/htmlcoin/janus/docker/fill_user_account.sh htmlcoin_testchain:.
+	docker cp ${GOPATH}/src/github.com/denuoweb/janus/docker/fill_user_account.sh htmlcoin_testchain:.
 	docker exec htmlcoin_testchain /bin/sh -c ./fill_user_account.sh
 	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:4889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev
 
@@ -108,7 +108,7 @@ local-dev: check-env install
 local-dev-https: check-env install
 	docker run --rm --name htmlcoin_testchain -d -p 4889:4889 htmlcoin/htmlcoin htmlcoind -regtest -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
 	sleep 3
-	docker cp ${GOPATH}/src/github.com/htmlcoin/janus/docker/fill_user_account.sh htmlcoin_testchain:.
+	docker cp ${GOPATH}/src/github.com/denuoweb/janus/docker/fill_user_account.sh htmlcoin_testchain:.
 	docker exec htmlcoin_testchain /bin/sh -c ./fill_user_account.sh > /dev/null&
 	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:4889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev --https-key https/key.pem --https-cert https/cert.pem
 
@@ -116,7 +116,7 @@ local-dev-https: check-env install
 local-dev-logs: check-env install
 	docker run --rm --name htmlcoin_testchain -d -p 4889:4889 htmlcoin/htmlcoin:dev htmlcoind -regtest -rpcbind=0.0.0.0:4889 -rpcallowip=0.0.0.0/0 -logevents=1 -rpcuser=htmlcoin -rpcpassword=testpasswd -deprecatedrpc=accounts -printtoconsole | true
 	sleep 3
-	docker cp ${GOPATH}/src/github.com/htmlcoin/janus/docker/fill_user_account.sh htmlcoin_testchain:.
+	docker cp ${GOPATH}/src/github.com/denuoweb/janus/docker/fill_user_account.sh htmlcoin_testchain:.
 	docker exec htmlcoin_testchain /bin/sh -c ./fill_user_account.sh
 	HTMLCOIN_RPC=http://htmlcoin:testpasswd@localhost:4889 HTMLCOIN_NETWORK=auto $(GOBIN)/janus --port $(JANUS_PORT) --accounts ./docker/standalone/myaccounts.txt --dev > janus_dev_logs.txt
 
@@ -128,7 +128,7 @@ docker-build-unit-tests:
 	docker build -t htmlcoin/tests.janus -f ./docker/unittests.Dockerfile --build-arg GO_VERSION=$(GO_VERSION) .
 
 docker-unit-tests:
-	docker run --rm -v `pwd`:/go/src/github.com/htmlcoin/janus htmlcoin/tests.janus
+	docker run --rm -v `pwd`:/go/src/github.com/denuoweb/janus htmlcoin/tests.janus
 
 docker-tests: docker-build-unit-tests docker-unit-tests openzeppelin-docker-compose
 

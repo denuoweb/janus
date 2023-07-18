@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/htmlcoin/janus/pkg/conversion"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/conversion"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 )
 
 type subscriptionInformation struct {

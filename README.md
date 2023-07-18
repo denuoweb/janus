@@ -38,7 +38,7 @@ Regtest: run it locally with ```make quick-start-regtest```
 
 If you need to use eth_sendTransaction, you are going to have to run your own instance pointing to your own HTMLCOIN instance
 
-See [(Beta) HTMLCOIN ethers-js library](https://github.com/htmlcoin/htmlcoin-ethers) to generate transactions in the browser so you can use public instances
+See [(Beta) HTMLCOIN ethers-js library](https://github.com/denuoweb/htmlcoin-ethers) to generate transactions in the browser so you can use public instances
 
 See [Differences between EVM chains](#differences-between-evm-chains) below
 
@@ -54,10 +54,10 @@ See [Differences between EVM chains](#differences-between-evm-chains) below
 $ sudo apt install make git golang docker-compose
 # Configure GOPATH if not configured
 $ export GOPATH=`go env GOPATH`
-$ mkdir -p $GOPATH/src/github.com/htmlcoin && \
-  cd $GOPATH/src/github.com/htmlcoin && \
-  git clone https://github.com/htmlcoin/janus
-$ cd $GOPATH/src/github.com/htmlcoin/janus
+$ mkdir -p $GOPATH/src/github.com/denuoweb && \
+  cd $GOPATH/src/github.com/denuoweb && \
+  git clone https://github.com/denuoweb/janus
+$ cd $GOPATH/src/github.com/denuoweb/janus
 # Generate self-signed SSL cert (optional)
 # If you do this step, Janus will respond in SSL
 # otherwise, Janus will respond unencrypted
@@ -119,19 +119,19 @@ module.exports = {
 Getting Janus to work with Metamask requires two things
 - [Configuring Metamask to point to Janus](metamask)
 - Locally signing transactions with a Metamask fork
-  - [(Alpha) HTMLCOIN Metamask fork](https://github.com/htmlcoin/metamask-extension/releases)
+  - [(Alpha) HTMLCOIN Metamask fork](https://github.com/denuoweb/metamask-extension/releases)
 
 ## Truffle support
 
 Hosting your own Janus and blockchain instance works similarly to geth and is supported
 
-Client side transaction signing is supported with [hdwallet-provider](https://www.npmjs.com/package/@htmlcoin/hdwallet-provider) underneath it uses [htmlcoin-ethers-wrapper](https://github.com/htmlcoin/htmlcoin-ethers) to construct raw transactions
+Client side transaction signing is supported with [hdwallet-provider](https://www.npmjs.com/package/@htmlcoin/hdwallet-provider) underneath it uses [htmlcoin-ethers-wrapper](https://github.com/denuoweb/htmlcoin-ethers) to construct raw transactions
 
-See [truffle unbox htmlcoin/react-box](https://github.com/htmlcoin/react-box) for an example truffle-config file
+See [truffle unbox htmlcoin/react-box](https://github.com/denuoweb/react-box) for an example truffle-config file
 
 ## Ethers support
 
-Ethers is supported, use [htmlcoin-ethers-wrapper](https://github.com/htmlcoin/htmlcoin-ethers)
+Ethers is supported, use [htmlcoin-ethers-wrapper](https://github.com/denuoweb/htmlcoin-ethers)
 
 ## Supported ETH methods
 

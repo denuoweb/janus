@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 )
 
 var ErrNoHtmlcoinConnections = errors.New("htmlcoind has no connections")

@@ -4,8 +4,8 @@ ARG ALPINE_VERSION=3.16
 FROM golang:${GO_VERSION}-alpine as builder
 RUN apk add --no-cache make gcc musl-dev git
 
-WORKDIR $GOPATH/src/github.com/htmlcoin/janus
-COPY go.mod go.sum $GOPATH/src/github.com/htmlcoin/janus/
+WORKDIR $GOPATH/src/github.com/denuoweb/janus
+COPY go.mod go.sum $GOPATH/src/github.com/denuoweb/janus/
 
 # Cache go modules
 RUN go mod download -x
@@ -13,15 +13,15 @@ RUN go mod download -x
 ARG GIT_SHA
 ENV CGO_ENABLED=0
 
-COPY ./ $GOPATH/src/github.com/htmlcoin/janus
+COPY ./ $GOPATH/src/github.com/denuoweb/janus
 
 ENV GIT_SHA=$GIT_SH
 
 RUN go build \
         -ldflags \
-            "-X 'github.com/htmlcoin/janus/pkg/params.GitSha=`./sha.sh`'" \
-        -o $GOPATH/bin $GOPATH/src/github.com/htmlcoin/janus/... && \
-    rm -fr $GOPATH/src/github.com/htmlcoin/janus/.git
+            "-X 'github.com/denuoweb/janus/pkg/params.GitSha=`./sha.sh`'" \
+        -o $GOPATH/bin $GOPATH/src/github.com/denuoweb/janus/... && \
+    rm -fr $GOPATH/src/github.com/denuoweb/janus/.git
 
 # Final stage
 FROM alpine:${ALPINE_VERSION} as base

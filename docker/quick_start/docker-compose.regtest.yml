@@ -19,12 +19,12 @@ services:
         - HTMLCOIN_RPC=http://htmlcoin:testpasswd@htmlcoin_regtest:4889
         - COMPOSE_PROJECT_NAME=regtest
     volumes:
-        - ../standalone/myaccounts.txt:$GOPATH/github.com/htmlcoin/janus/myaccounts.txt
+        - ../standalone/myaccounts.txt:$GOPATH/github.com/denuoweb/janus/myaccounts.txt
         - ../../https:/https
         - ../../logs:/logs
     depends_on:
       - htmlcoin_regtest
-    command: --bind 0.0.0.0 --accounts $GOPATH/github.com/htmlcoin/janus/myaccounts.txt --log-file /logs/janusLogs.txt --dev --https-key /https/key.pem --https-cert /https/cert.pem
+    command: --bind 0.0.0.0 --accounts $GOPATH/github.com/denuoweb/janus/myaccounts.txt --log-file /logs/janusLogs.txt --dev --https-key /https/key.pem --https-cert /https/cert.pem
     networks:
       - htmlcoind_regtest_network
 

@@ -4,8 +4,8 @@ import (
 	"runtime"
 
 	"github.com/labstack/echo"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/params"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/params"
 )
 
 // Web3ClientVersion implements web3_clientVersion

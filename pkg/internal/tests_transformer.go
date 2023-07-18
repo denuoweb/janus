@@ -3,7 +3,7 @@ package internal
 import (
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/eth"
 )
 
 type ETHProxy interface {

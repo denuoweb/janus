@@ -2,7 +2,7 @@ package transformer
 
 import (
 	"github.com/labstack/echo"
-	"github.com/htmlcoin/janus/pkg/notifier"
+	"github.com/denuoweb/janus/pkg/notifier"
 )
 
 func getNotifier(c echo.Context) *notifier.Notifier {

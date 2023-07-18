@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/htmlcoin/janus/pkg/internal"
+	"github.com/denuoweb/janus/pkg/internal"
 )
 
 func TestWeb3Sha3Request(t *testing.T) {

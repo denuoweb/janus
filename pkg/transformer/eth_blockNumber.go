@@ -6,8 +6,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo"
-	"github.com/htmlcoin/janus/pkg/eth"
-	"github.com/htmlcoin/janus/pkg/htmlcoin"
+	"github.com/denuoweb/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/htmlcoin"
 )
 
 // ProxyETHBlockNumber implements ETHProxy

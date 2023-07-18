@@ -19,12 +19,12 @@ services:
         - HTMLCOIN_RPC=http://htmlcoin:testpasswd@htmlcoin_testnet:4889
         - COMPOSE_PROJECT_NAME=testnet
     volumes:
-        - ../standalone/myaccounts.txt:$GOPATH/github.com/htmlcoin/janus/myaccounts.txt
+        - ../standalone/myaccounts.txt:$GOPATH/github.com/denuoweb/janus/myaccounts.txt
         - ../../https:/https
         - ../../logs:/logs
     depends_on:
       - htmlcoin_testnet
-    command: --bind 0.0.0.0 --port 24889 --ignoreTransactions --accounts $GOPATH/github.com/htmlcoin/janus/myaccounts.txt --dev --https-key /https/key.pem --https-cert /https/cert.pem
+    command: --bind 0.0.0.0 --port 24889 --ignoreTransactions --accounts $GOPATH/github.com/denuoweb/janus/myaccounts.txt --dev --https-key /https/key.pem --https-cert /https/cert.pem
     networks:
       - htmlcoind_testnet_network
 

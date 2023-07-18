@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/htmlcoin/janus/pkg/utils"
+	"github.com/denuoweb/janus/pkg/utils"
 )
 
 type Method struct {

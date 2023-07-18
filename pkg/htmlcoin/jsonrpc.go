@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/htmlcoin/janus/pkg/eth"
+	"github.com/denuoweb/janus/pkg/eth"
 )
 
 const (
@@ -116,7 +116,7 @@ func GetErrorResponse(err error) eth.JSONRPCError {
 var (
 	errorCodeMap   = map[int]error{}
 	errorToCodeMap = map[error]int{}
-	// taken from https://github.com/htmlcoin/htmlcoin/blob/master/src/rpc/protocol.h
+	// taken from https://github.com/denuoweb/htmlcoin/blob/master/src/rpc/protocol.h
 	// Standard JSON-RPC 2.0 errors
 	ErrInvalidRequest = errors.New("invalid request") // -32600
 	// RPC_METHOD_NOT_FOUND is internally mapped to HTTP_NOT_FOUND (404).
