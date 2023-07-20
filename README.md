@@ -30,9 +30,9 @@ Janus is a web3 proxy adapter that can be used as a web3 provider to interact wi
 ## Quick start
 ### Public instances
 #### You can use public instances if you don't need to use eth_sendTransaction or eth_accounts
-Mainnet: https://janus.htmlcoin.dev/janus/
+Mainnet: https://info.htmlcoin.dev/janusapi/
 
-Future Testnet: https://testnet.htmlcoin.com/janus/
+Future Testnet (not live): https://testnet.htmlcoin.com/janusapi/
 
 Regtest: run it locally with ```make quick-start-regtest```
 
